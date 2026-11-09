@@ -39,6 +39,7 @@ export const MobilePlayerView: React.FC = () => {
     downloadingIds,
     retryPendingDownload,
     discardPendingDownload,
+    removeTrack,
   } = useLibrary();
   const { playTrack, currentTrack } = usePlayer();
   const { currentSkin, changeSkin } = useTheme();
@@ -295,17 +296,32 @@ export const MobilePlayerView: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Ação: Salvar em Playlist */}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setModalTrack(track);
-                    }}
-                    title="Adicionar à playlist"
-                    className="p-1.5 rounded-lg text-zinc-400 hover:text-sky-300 hover:bg-white/10 transition-colors"
-                  >
-                    <ListPlus className="w-4 h-4" />
-                  </button>
+                  {/* Ações: Salvar em Playlist e Excluir Música */}
+                  <div className="flex items-center gap-0.5">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setModalTrack(track);
+                      }}
+                      title="Adicionar à playlist"
+                      className="p-1.5 rounded-lg text-zinc-400 hover:text-sky-300 hover:bg-white/10 transition-colors"
+                    >
+                      <ListPlus className="w-4 h-4" />
+                    </button>
+
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (confirm(`Remover "${track.title}"? O arquivo será apagado do celular e do disco do PC.`)) {
+                          removeTrack(track.id);
+                        }
+                      }}
+                      title="Excluir música"
+                      className="p-1.5 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-white/10 transition-colors"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
 
                   {/* Status: Offline vs Túnel */}
                   <div className="flex items-center flex-shrink-0">

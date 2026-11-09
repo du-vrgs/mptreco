@@ -134,6 +134,31 @@ def download_track(
 
     return {"status": "success", "track": catalog[id]}
 
+@app.delete("/file/{id}")
+def delete_file(id: str, token: str = Query(None)):
+    verify_token(token)
+    catalog = load_catalog()
+    deleted = False
+
+    # Deletar arquivo físico registrado no catálogo
+    if id in catalog:
+        filename = catalog[id].get("filename")
+        if filename:
+            file_path = DOWNLOADS_DIR / filename
+            if file_path.exists():
+                file_path.unlink()
+                deleted = True
+        del catalog[id]
+        save_catalog(catalog)
+
+    # Deletar qualquer arquivo órfão com esse id no nome
+    for f in DOWNLOADS_DIR.glob(f"*{id}*.mp3"):
+        if f.exists():
+            f.unlink()
+            deleted = True
+
+    return {"status": "success", "deleted": deleted, "id": id}
+
 @app.get("/file/{id}.mp3")
 @app.head("/file/{id}.mp3")
 def get_mp3_file(id: str, token: str = Query(None)):

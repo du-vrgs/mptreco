@@ -182,10 +182,26 @@ export const useLibraryHelper = () => {
     removePendingTrack(trackId);
   }, [removePendingTrack]);
 
+  // Remove a música da memória do dispositivo (IndexedDB) E também do disco do PC se for o caso
   const removeTrack = useCallback(async (trackId: string): Promise<void> => {
+    // 1. Remove do armazenamento offline do navegador (IndexedDB)
     await deleteTrackOffline(trackId);
+
+    // 2. Notifica o backend/PC para deletar o arquivo físico .mp3 do disco rígido
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('mptreco_admin_token') : null;
+      const tokenParam = token ? `&token=${encodeURIComponent(token)}` : '';
+      await fetch(`/api/delete?id=${encodeURIComponent(trackId)}${tokenParam}`, {
+        method: 'DELETE',
+      });
+    } catch (e) {
+      console.warn('Não foi possível deletar arquivo físico no PC:', e);
+    }
+
+    // 3. Atualiza estado e ressincroniza o catálogo
     await refreshLibrary();
-  }, [refreshLibrary]);
+    await syncWithPc();
+  }, [refreshLibrary, syncWithPc]);
 
   const importLocalFiles = useCallback(async (files: FileList): Promise<void> => {
     for (let i = 0; i < files.length; i++) {
