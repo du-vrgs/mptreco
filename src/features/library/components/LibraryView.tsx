@@ -15,7 +15,7 @@ export const LibraryView: React.FC = () => {
     downloadingIds,
     downloadedSet,
     removeTrack,
-    downloadTrack,
+    downloadToPcAndSave,
     syncWithPc,
     importLocalFiles,
   } = useLibrary();
@@ -90,11 +90,11 @@ export const LibraryView: React.FC = () => {
               const isDownloading = downloadingIds.has(pt.id);
               const trackObj: Track = {
                 id: pt.id,
-                title: pt.filename.replace('.mp3', ''),
-                artist: 'PC Local',
-                durationSeconds: 0,
-                durationFormatted: '--:--',
-                thumbnailUrl: `https://i.ytimg.com/vi/${pt.id}/hqdefault.jpg`,
+                title: (pt.filename || pt.title).replace('.mp3', ''),
+                artist: pt.artist || 'PC Local',
+                durationSeconds: pt.durationSeconds || 0,
+                durationFormatted: pt.durationFormatted || '--:--',
+                thumbnailUrl: pt.thumbnailUrl || `https://i.ytimg.com/vi/${pt.id}/hqdefault.jpg`,
                 sourceType: AudioSourceType.YOUTUBE_STREAM,
                 createdAt: Date.now(),
               };
@@ -106,15 +106,15 @@ export const LibraryView: React.FC = () => {
                 >
                   <div className="min-w-0 pr-2">
                     <h4 className="text-xs font-semibold text-zinc-200 truncate">
-                      {pt.filename}
+                      {pt.filename || pt.title}
                     </h4>
                     <span className="text-[10px] text-zinc-500 font-mono">
-                      {(pt.sizeBytes / (1024 * 1024)).toFixed(1)} MB
+                      {pt.sizeBytes ? (pt.sizeBytes / (1024 * 1024)).toFixed(1) : '0'} MB
                     </span>
                   </div>
 
                   <button
-                    onClick={() => downloadTrack(trackObj)}
+                    onClick={() => downloadToPcAndSave(pt)}
                     disabled={isSavedOnPhone || isDownloading}
                     className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                       isSavedOnPhone

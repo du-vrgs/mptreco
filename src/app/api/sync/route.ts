@@ -18,12 +18,12 @@ export const GET = async (request: Request) => {
     });
 
     if (!gistRes.ok) {
-      return NextResponse.json({ files: [] });
+      return NextResponse.json({ tracks: [] });
     }
 
     const rawTunnelUrl = (await gistRes.text()).trim();
     if (!rawTunnelUrl.startsWith('https://')) {
-      return NextResponse.json({ files: [] });
+      return NextResponse.json({ tracks: [] });
     }
 
     const listRes = await fetch(`${rawTunnelUrl}/list?token=${ADMIN_TOKEN}`, {
@@ -31,13 +31,13 @@ export const GET = async (request: Request) => {
     });
 
     if (!listRes.ok) {
-      return NextResponse.json({ files: [] });
+      return NextResponse.json({ tracks: [] });
     }
 
     const data = await listRes.json();
     return NextResponse.json(data);
   } catch (error) {
     console.error('[API /api/sync] Erro:', error);
-    return NextResponse.json({ files: [] });
+    return NextResponse.json({ tracks: [] });
   }
 };

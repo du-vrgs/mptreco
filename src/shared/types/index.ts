@@ -28,6 +28,8 @@ export interface Track {
   sourceType: AudioSourceType;
   streamUrl?: string; // Direto ou blob URL
   localBlob?: Blob; // Quando armazenado no IndexedDB
+  filename?: string;
+  sizeBytes?: number;
   createdAt: number;
 }
 

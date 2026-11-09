@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { PlaybackState, RepeatMode, Track, AudioSourceType } from '@/shared/types';
-import { getTrackBlobUrl } from '@/features/library/services/indexedDbStorageService';
+import { getTrackBlobUrl, saveTrackOffline, isTrackDownloaded } from '@/features/library/services/indexedDbStorageService';
 
 export const useAudioPlayerHelper = () => {
   const [currentTrack, setCurrentTrack] = useState<Track | null>(null);
@@ -26,28 +26,13 @@ export const useAudioPlayerHelper = () => {
     audio.volume = 0.8;
     audioRef.current = audio;
 
-    const handleTimeUpdate = () => {
-      setCurrentTime(audio.currentTime);
-    };
-
-    const handleLoadedMetadata = () => {
-      setDuration(audio.duration || 0);
-    };
-
-    const handleWaiting = () => {
-      setPlaybackState(PlaybackState.LOADING);
-    };
-
-    const handlePlaying = () => {
-      setPlaybackState(PlaybackState.PLAYING);
-    };
-
-    const handlePause = () => {
-      setPlaybackState(PlaybackState.PAUSED);
-    };
-
+    const handleTimeUpdate = () => setCurrentTime(audio.currentTime);
+    const handleLoadedMetadata = () => setDuration(audio.duration || 0);
+    const handleWaiting = () => setPlaybackState(PlaybackState.LOADING);
+    const handlePlaying = () => setPlaybackState(PlaybackState.PLAYING);
+    const handlePause = () => setPlaybackState(PlaybackState.PAUSED);
     const handleError = () => {
-      console.error('Erro de reprodução no elemento áudio:', audio.error);
+      console.error('Erro de áudio:', audio.error);
       setPlaybackState(PlaybackState.ERROR);
     };
 
@@ -109,17 +94,28 @@ export const useAudioPlayerHelper = () => {
       }
 
       let audioSrc = '';
-      if (track.sourceType === AudioSourceType.OFFLINE_STORAGE || track.sourceType === AudioSourceType.LOCAL_DEVICE_FILE) {
+      const alreadyOffline = await isTrackDownloaded(track.id);
+
+      if (alreadyOffline || track.sourceType === AudioSourceType.OFFLINE_STORAGE || track.sourceType === AudioSourceType.LOCAL_DEVICE_FILE) {
         const blobUrl = await getTrackBlobUrl(track.id);
         if (blobUrl) {
           audioSrc = blobUrl;
-        } else {
-          throw new Error('Arquivo offline não encontrado');
         }
-      } else {
+      }
+
+      // Se ainda não estiver em cache local, buscar pela URL do stream/túnel
+      if (!audioSrc) {
         const token = typeof window !== 'undefined' ? localStorage.getItem('mptreco_admin_token') : null;
         const tokenParam = token ? `&token=${encodeURIComponent(token)}` : '';
         audioSrc = `/api/stream?id=${track.id}${tokenParam}`;
+
+        // Auto-Cache em background no IndexedDB do aparelho sem travar o play imediato
+        fetch(audioSrc)
+          .then((res) => res.blob())
+          .then((blob) => {
+            saveTrackOffline(track, blob).catch((e) => console.warn('Auto-cache erro:', e));
+          })
+          .catch(() => {});
       }
 
       audio.src = audioSrc;

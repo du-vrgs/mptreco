@@ -13,7 +13,7 @@ export const useLibraryHelper = () => {
   const [downloadingIds, setDownloadingIds] = useState<Set<string>>(new Set());
   const [downloadedSet, setDownloadedSet] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [pcTracks, setPcTracks] = useState<{ id: string; filename: string; sizeBytes: number }[]>([]);
+  const [pcTracks, setPcTracks] = useState<Track[]>([]);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
 
   const refreshLibrary = useCallback(async () => {
@@ -38,7 +38,11 @@ export const useLibraryHelper = () => {
       const res = await fetch(`/api/sync?token=${encodeURIComponent(token)}`);
       if (res.ok) {
         const data = await res.json();
-        setPcTracks(data.files || []);
+        const mapped: Track[] = (data.tracks || []).map((t: Track) => ({
+          ...t,
+          sourceType: AudioSourceType.YOUTUBE_STREAM,
+        }));
+        setPcTracks(mapped);
       }
     } catch (e) {
       console.warn('PC offline para sincronização:', e);
@@ -52,23 +56,33 @@ export const useLibraryHelper = () => {
     syncWithPc();
   }, [refreshLibrary, syncWithPc]);
 
-  const downloadTrack = useCallback(async (track: Track): Promise<boolean> => {
+  const downloadToPcAndSave = useCallback(async (track: Track): Promise<boolean> => {
     if (downloadingIds.has(track.id)) return false;
 
     setDownloadingIds((prev) => new Set(prev).add(track.id));
     try {
       const token = typeof window !== 'undefined' ? localStorage.getItem('mptreco_admin_token') : null;
-      const tokenParam = token ? `&token=${encodeURIComponent(token)}` : '';
-      const streamRes = await fetch(`/api/stream?id=${track.id}${tokenParam}`);
-      if (!streamRes.ok) throw new Error('Falha ao obter MP3 do PC');
+      const downloadParams = new URLSearchParams({
+        id: track.id,
+        title: track.title,
+        artist: track.artist,
+        durationFormatted: track.durationFormatted,
+        durationSeconds: track.durationSeconds.toString(),
+        thumbnailUrl: track.thumbnailUrl,
+        token: token || '',
+      });
 
-      const audioBlob = await streamRes.blob();
-      await saveTrackOffline(track, audioBlob);
-      await refreshLibrary();
+      const res = await fetch(`/api/download?${downloadParams.toString()}`, {
+        method: 'POST',
+      });
+
+      if (!res.ok) throw new Error('Falha ao baixar no PC');
+
+      await syncWithPc();
       return true;
     } catch (err) {
-      console.error(`Erro ao baixar faixa ${track.id}:`, err);
-      alert('Não foi possível transferir a música para o celular.');
+      console.error(`Erro ao baixar ${track.id}:`, err);
+      alert('Não foi possível baixar no PC.');
       return false;
     } finally {
       setDownloadingIds((prev) => {
@@ -77,7 +91,7 @@ export const useLibraryHelper = () => {
         return next;
       });
     }
-  }, [downloadingIds, refreshLibrary]);
+  }, [downloadingIds, syncWithPc]);
 
   const removeTrack = useCallback(async (trackId: string): Promise<void> => {
     await deleteTrackOffline(trackId);
@@ -120,7 +134,7 @@ export const useLibraryHelper = () => {
     downloadingIds,
     downloadedSet,
     syncWithPc,
-    downloadTrack,
+    downloadToPcAndSave,
     removeTrack,
     importLocalFiles,
     refreshLibrary,

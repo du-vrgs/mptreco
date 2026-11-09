@@ -15,7 +15,7 @@ interface TrackCardProps {
 
 export const TrackCard: React.FC<TrackCardProps> = ({ track, allTracksInList = [] }) => {
   const { currentTrack, playTrack } = usePlayer();
-  const { downloadTrack, downloadingIds, downloadedSet } = useLibrary();
+  const { downloadToPcAndSave, downloadingIds, downloadedSet } = useLibrary();
   const { playlists, addTrackToPlaylist } = usePlaylists();
 
   const isCurrent = currentTrack?.id === track.id;
@@ -29,8 +29,8 @@ export const TrackCard: React.FC<TrackCardProps> = ({ track, allTracksInList = [
 
   const handleDownload = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (isDownloaded || isDownloading) return;
-    await downloadTrack(track);
+    if (isDownloading) return;
+    await downloadToPcAndSave(track);
   };
 
   return (
