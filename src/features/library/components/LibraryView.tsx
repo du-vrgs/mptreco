@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useRef } from 'react';
-import { Upload, HardDrive, Music, Trash2, Play, Download, Laptop, RefreshCw } from 'lucide-react';
+import React, { useRef, useState } from 'react';
+import { Upload, HardDrive, Music, Trash2, Play, Download, Laptop, RefreshCw, ListPlus } from 'lucide-react';
 import { useLibrary } from '../context/LibraryContext';
 import { usePlayer } from '@/features/player/context/PlayerContext';
+import { AddToPlaylistModal } from '@/features/playlists/components/AddToPlaylistModal';
 import { AudioSourceType, Track } from '@/shared/types';
 
 export const LibraryView: React.FC = () => {
@@ -22,6 +23,7 @@ export const LibraryView: React.FC = () => {
 
   const { playTrack, currentTrack } = usePlayer();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [modalTrack, setModalTrack] = useState<Track | null>(null);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -48,43 +50,43 @@ export const LibraryView: React.FC = () => {
             ref={fileInputRef}
             type="file"
             multiple
-            accept="audio/*"
-            className="hidden"
+            accept="audio/*,.mp3"
             onChange={handleFileChange}
+            className="hidden"
           />
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-medium border border-zinc-700 transition-all"
+            className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-zinc-800/80 hover:bg-zinc-700/80 text-zinc-200 text-xs md:text-sm font-medium border border-zinc-700/60 transition-all shadow-sm"
           >
-            <Upload className="w-3.5 h-3.5" />
+            <Upload className="w-4 h-4 text-sky-400" />
             Importar MP3
+          </button>
+
+          <button
+            onClick={syncWithPc}
+            disabled={isSyncing}
+            className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs md:text-sm font-semibold transition-all shadow-md active:scale-95"
+          >
+            <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
+            Sincronizar PC
           </button>
         </div>
       </div>
 
-      {/* Seção 1: Músicas disponíveis no PC prontas para baixar pro celular */}
+      {/* Seção 1: Músicas Disponíveis no PC */}
       {pcTracks.length > 0 && (
-        <div className="flex flex-col gap-3 p-4 rounded-2xl bg-emerald-950/20 border border-emerald-500/30">
+        <div className="flex flex-col gap-2 p-4 rounded-2xl bg-gradient-to-br from-emerald-950/20 via-zinc-900/40 to-black/40 border border-emerald-500/20">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold text-emerald-400 flex items-center gap-2">
-              <Laptop className="w-4 h-4" />
-              Músicas no seu PC (Túnel Conectado)
+            <h3 className="text-sm font-bold text-emerald-300 flex items-center gap-2">
+              <Laptop className="w-4 h-4 text-emerald-400" />
+              Músicas no seu PC ({pcTracks.length})
             </h3>
-            <button
-              onClick={syncWithPc}
-              disabled={isSyncing}
-              className="text-xs text-zinc-400 hover:text-white flex items-center gap-1"
-              title="Atualizar lista do PC"
-            >
-              <RefreshCw className={`w-3 h-3 ${isSyncing ? 'animate-spin' : ''}`} />
-              Sincronizar
-            </button>
+            <span className="text-[11px] text-zinc-400 font-mono">
+              Prontas para baixar ou ouvir
+            </span>
           </div>
-          <p className="text-xs text-zinc-400">
-            Clique em <strong>Baixar para o Celular</strong> para salvar no IndexedDB. Depois você pode desligar o PC.
-          </p>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
             {pcTracks.map((pt) => {
               const isSavedOnPhone = downloadedSet.has(pt.id);
               const isDownloading = downloadingIds.has(pt.id);
@@ -104,8 +106,11 @@ export const LibraryView: React.FC = () => {
                   key={pt.id}
                   className="flex items-center justify-between p-2.5 rounded-xl bg-black/40 border border-emerald-500/20"
                 >
-                  <div className="min-w-0 pr-2">
-                    <h4 className="text-xs font-semibold text-zinc-200 truncate">
+                  <div
+                    onClick={() => playTrack(trackObj, pcTracks)}
+                    className="min-w-0 pr-2 cursor-pointer flex-1"
+                  >
+                    <h4 className="text-xs font-semibold text-zinc-200 truncate hover:text-sky-300 transition-colors">
                       {pt.filename || pt.title}
                     </h4>
                     <span className="text-[10px] text-zinc-500 font-mono">
@@ -113,20 +118,33 @@ export const LibraryView: React.FC = () => {
                     </span>
                   </div>
 
-                  <button
-                    onClick={() => downloadToPcAndSave(pt)}
-                    disabled={isSavedOnPhone || isDownloading}
-                    className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                      isSavedOnPhone
-                        ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 cursor-default'
-                        : isDownloading
-                        ? 'bg-sky-500/20 text-sky-300 animate-pulse'
-                        : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-md active:scale-95'
-                    }`}
-                  >
-                    <Download className="w-3.5 h-3.5" />
-                    <span>{isSavedOnPhone ? 'No Celular' : isDownloading ? 'Salvando...' : 'Salvar no Celular'}</span>
-                  </button>
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setModalTrack(trackObj);
+                      }}
+                      title="Salvar em Playlist"
+                      className="p-1.5 rounded-lg text-zinc-400 hover:text-sky-300 hover:bg-white/10 transition-colors"
+                    >
+                      <ListPlus className="w-4 h-4" />
+                    </button>
+
+                    <button
+                      onClick={() => downloadToPcAndSave(pt)}
+                      disabled={isSavedOnPhone || isDownloading}
+                      className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                        isSavedOnPhone
+                          ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 cursor-default'
+                          : isDownloading
+                          ? 'bg-sky-500/20 text-sky-300 animate-pulse'
+                          : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-md active:scale-95'
+                      }`}
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>{isSavedOnPhone ? 'No Celular' : isDownloading ? 'Salvando...' : 'Salvar no Celular'}</span>
+                    </button>
+                  </div>
                 </div>
               );
             })}
@@ -178,7 +196,7 @@ export const LibraryView: React.FC = () => {
                 }`}
               >
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="p-2.5 rounded-lg bg-zinc-800 text-sky-400">
+                  <div className="p-2.5 rounded-lg bg-zinc-800 text-sky-400 flex-shrink-0">
                     <Music className="w-5 h-5" />
                   </div>
                   <div className="min-w-0">
@@ -191,7 +209,19 @@ export const LibraryView: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5 flex-shrink-0">
+                  {/* Botão Adicionar a Playlist */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setModalTrack(track);
+                    }}
+                    title="Adicionar à playlist"
+                    className="p-2 text-zinc-400 hover:text-sky-300 hover:bg-white/10 rounded-lg transition-colors"
+                  >
+                    <ListPlus className="w-4 h-4" />
+                  </button>
+
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -210,6 +240,15 @@ export const LibraryView: React.FC = () => {
           })
         )}
       </div>
+
+      {/* Modal Adicionar à Playlist */}
+      {modalTrack && (
+        <AddToPlaylistModal
+          track={modalTrack}
+          isOpen={!!modalTrack}
+          onClose={() => setModalTrack(null)}
+        />
+      )}
     </div>
   );
 };
