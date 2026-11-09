@@ -18,18 +18,32 @@ export const POST = async (request: Request) => {
       return NextResponse.json({ error: 'ID obrigatório' }, { status: 400 });
     }
 
-    // 1. Tentar acionar o daemon local via túnel ou direto no localhost:7777
+    // 1. Tentar primeiro o daemon local direto na porta 7777 (quando rodando local no PC)
     let targetUrl = 'http://127.0.0.1:7777';
+    let isLocalUp = false;
+
     try {
-      const gistRes = await fetch(`${GIST_URL}?t=${Date.now()}`, { cache: 'no-store' });
-      if (gistRes.ok) {
-        const tunnel = (await gistRes.text()).trim();
-        if (tunnel.startsWith('https://')) {
-          targetUrl = tunnel;
-        }
+      const localPing = await fetch('http://127.0.0.1:7777/health', { signal: AbortSignal.timeout(1000) });
+      if (localPing.ok) {
+        isLocalUp = true;
       }
     } catch {
-      // continua com localhost
+      isLocalUp = false;
+    }
+
+    // Se o localhost:7777 não estiver respondendo direto, tenta pegar pelo túnel do Gist (ex: quando acessado via Vercel)
+    if (!isLocalUp) {
+      try {
+        const gistRes = await fetch(`${GIST_URL}?t=${Date.now()}`, { cache: 'no-store' });
+        if (gistRes.ok) {
+          const tunnel = (await gistRes.text()).trim();
+          if (tunnel.startsWith('https://')) {
+            targetUrl = tunnel;
+          }
+        }
+      } catch {
+        // continua
+      }
     }
 
     const downloadParams = new URLSearchParams({
