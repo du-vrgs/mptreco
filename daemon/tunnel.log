@@ -19,3 +19,30 @@
 2026-11-09T18:42:35Z INF ICMP proxy will use fe80::4f79:b892:661a:9a14 in zone wlp4s0 as source for IPv6
 2026-11-09T18:42:35Z INF Starting metrics server on 127.0.0.1:20242/metrics
 2026-11-09T18:42:35Z INF Tunnel connection curve preferences: [X25519MLKEM768 CurveID(65074) CurveP256] connIndex=0 event=0 ip=198.41.200.33
+2026-11-09T18:42:36Z INF Registered tunnel connection connIndex=0 connection=8a4fc03d-dd3b-49e6-a90e-e529ccc0220e event=0 ip=198.41.200.33 location=gru19 protocol=quic
+2026-11-09T18:42:41Z INF +-------------------------------------------------------------------------------------+
+2026-11-09T18:42:41Z INF |                               CONNECTIVITY PRE-CHECKS                               |
+2026-11-09T18:42:41Z INF +-------------------------------------------------------------------------------------+
+2026-11-09T18:42:41Z INF |  COMPONENT         TARGET                     STATUS  DETAILS                       |
+2026-11-09T18:42:41Z INF |  DNS Resolution    region1.v2.argotunnel.com  PASS    DNS Resolved successfully     |
+2026-11-09T18:42:41Z INF |  DNS Resolution    region2.v2.argotunnel.com  PASS    DNS Resolved successfully     |
+2026-11-09T18:42:41Z INF |  UDP Connectivity  region1.v2.argotunnel.com  PASS    QUIC connection successful    |
+2026-11-09T18:42:41Z INF |  UDP Connectivity  region2.v2.argotunnel.com  PASS    QUIC connection successful    |
+2026-11-09T18:42:41Z INF |  TCP Connectivity  region1.v2.argotunnel.com  PASS    HTTP/2 connection successful  |
+2026-11-09T18:42:41Z INF |  TCP Connectivity  region2.v2.argotunnel.com  PASS    HTTP/2 connection successful  |
+2026-11-09T18:42:41Z INF |  Cloudflare API    api.cloudflare.com:443     PASS    API is reachable              |
+2026-11-09T18:42:41Z INF |                                                                                     |
+2026-11-09T18:42:41Z INF |  SUMMARY: Environment is healthy. cloudflared will use 'quic' as primary protocol.  |
+2026-11-09T18:42:41Z INF +-------------------------------------------------------------------------------------+
+2026-11-09T18:42:41Z INF precheck component="DNS Resolution" details="DNS Resolved successfully" run_id=63c3f871-60e5-4e75-b166-6509432213f1 status=pass target=region1.v2.argotunnel.com
+2026-11-09T18:42:41Z INF precheck component="DNS Resolution" details="DNS Resolved successfully" run_id=63c3f871-60e5-4e75-b166-6509432213f1 status=pass target=region2.v2.argotunnel.com
+2026-11-09T18:42:41Z INF precheck component="UDP Connectivity" details="QUIC connection successful" run_id=63c3f871-60e5-4e75-b166-6509432213f1 status=pass target=region1.v2.argotunnel.com
+2026-11-09T18:42:41Z INF precheck component="UDP Connectivity" details="QUIC connection successful" run_id=63c3f871-60e5-4e75-b166-6509432213f1 status=pass target=region2.v2.argotunnel.com
+2026-11-09T18:42:41Z INF precheck component="TCP Connectivity" details="HTTP/2 connection successful" run_id=63c3f871-60e5-4e75-b166-6509432213f1 status=pass target=region1.v2.argotunnel.com
+2026-11-09T18:42:41Z INF precheck component="TCP Connectivity" details="HTTP/2 connection successful" run_id=63c3f871-60e5-4e75-b166-6509432213f1 status=pass target=region2.v2.argotunnel.com
+2026-11-09T18:42:41Z INF precheck component="Cloudflare API" details="API is reachable" run_id=63c3f871-60e5-4e75-b166-6509432213f1 status=pass target=api.cloudflare.com:443
+2026-11-09T18:42:41Z INF precheck complete hard_fail=false run_id=63c3f871-60e5-4e75-b166-6509432213f1 suggested_protocol=quic
+2026-11-09T18:46:11Z ERR  error="stream 25 canceled by remote with error code 0" connIndex=0 event=1 ingressRule=0 originService=http://127.0.0.1:7777
+2026-11-09T18:46:11Z ERR Request failed error="stream 25 canceled by remote with error code 0" connIndex=0 dest=https://alive-launched-forest-groundwater.trycloudflare.com/file/FGBhQbmPwH8.mp3?token=a8ead6af9a2e9d762a087839b245b246ef2da951889a9912 event=0 ip=198.41.200.33 type=http
+2026-11-09T18:46:14Z ERR  error="stream 33 canceled by remote with error code 0" connIndex=0 event=1 ingressRule=0 originService=http://127.0.0.1:7777
+2026-11-09T18:46:14Z ERR Request failed error="stream 33 canceled by remote with error code 0" connIndex=0 dest=https://alive-launched-forest-groundwater.trycloudflare.com/file/FGBhQbmPwH8.mp3?token=a8ead6af9a2e9d762a087839b245b246ef2da951889a9912 event=0 ip=198.41.200.33 type=http

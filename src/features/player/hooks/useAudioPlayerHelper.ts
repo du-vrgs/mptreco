@@ -88,11 +88,6 @@ export const useAudioPlayerHelper = () => {
     setCurrentTime(0);
 
     try {
-      initVisualizerNode();
-      if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
-        await audioContextRef.current.resume();
-      }
-
       let audioSrc = '';
       const alreadyOffline = await isTrackDownloaded(track.id);
 
@@ -111,7 +106,10 @@ export const useAudioPlayerHelper = () => {
 
         // Auto-Cache em background no IndexedDB do aparelho sem travar o play imediato
         fetch(audioSrc)
-          .then((res) => res.blob())
+          .then((res) => {
+            if (res.ok) return res.blob();
+            throw new Error('Falha no auto-cache');
+          })
           .then((blob) => {
             saveTrackOffline(track, blob).catch((e) => console.warn('Auto-cache erro:', e));
           })
@@ -119,6 +117,7 @@ export const useAudioPlayerHelper = () => {
       }
 
       audio.src = audioSrc;
+      audio.crossOrigin = 'anonymous';
       await audio.play();
       setPlaybackState(PlaybackState.PLAYING);
 
@@ -136,7 +135,7 @@ export const useAudioPlayerHelper = () => {
       console.error('Erro ao iniciar faixa:', error);
       setPlaybackState(PlaybackState.ERROR);
     }
-  }, [initVisualizerNode]);
+  }, []);
 
   const togglePlayPause = useCallback(async () => {
     const audio = audioRef.current;
