@@ -2,8 +2,8 @@
 
 import React, { useState } from 'react';
 import Image from 'next/image';
-import { Play, Download, Check, Loader2, ListPlus } from 'lucide-react';
-import { Track } from '@/shared/types';
+import { Play, Pause, Download, Check, Loader2, ListPlus } from 'lucide-react';
+import { Track, PlaybackState } from '@/shared/types';
 import { usePlayer } from '@/features/player/context/PlayerContext';
 import { useLibrary } from '@/features/library/context/LibraryContext';
 import { AddToPlaylistModal } from '@/features/playlists/components/AddToPlaylistModal';
@@ -14,15 +14,21 @@ interface TrackCardProps {
 }
 
 export const TrackCard: React.FC<TrackCardProps> = ({ track, allTracksInList = [] }) => {
-  const { currentTrack, playTrack } = usePlayer();
+  const { currentTrack, playbackState, playTrack, togglePlayPause } = usePlayer();
   const { downloadToPcAndSave, downloadingIds, downloadedSet } = useLibrary();
   const [isPlaylistModalOpen, setIsPlaylistModalOpen] = useState(false);
 
   const isCurrent = currentTrack?.id === track.id;
+  const isPlaying = isCurrent && playbackState === PlaybackState.PLAYING;
+  const isLoading = isCurrent && playbackState === PlaybackState.LOADING;
   const isDownloading = downloadingIds.has(track.id);
   const isDownloaded = downloadedSet.has(track.id);
 
-  const handlePlay = () => {
+  const handleCardClick = () => {
+    if (isCurrent) {
+      togglePlayPause();
+      return;
+    }
     const list = allTracksInList.length > 0 ? allTracksInList : [track];
     playTrack(track, list);
   };
@@ -36,14 +42,14 @@ export const TrackCard: React.FC<TrackCardProps> = ({ track, allTracksInList = [
   return (
     <>
       <div
-        onClick={handlePlay}
+        onClick={handleCardClick}
         className={`group relative flex items-center gap-3 p-2.5 rounded-xl transition-all duration-200 cursor-pointer border ${
           isCurrent
             ? 'bg-sky-950/60 border-sky-400/80 shadow-[0_0_15px_rgba(56,189,248,0.3)]'
             : 'bg-zinc-900/40 hover:bg-zinc-800/60 border-zinc-800/80 hover:border-zinc-700'
         }`}
       >
-        {/* Thumbnail com Overlay de Play */}
+        {/* Thumbnail com Overlay de Play / Pause / Spinner */}
         <div className="relative w-16 h-12 md:w-20 md:h-14 rounded-lg overflow-hidden flex-shrink-0 bg-zinc-950">
           <Image
             src={track.thumbnailUrl}
@@ -52,8 +58,18 @@ export const TrackCard: React.FC<TrackCardProps> = ({ track, allTracksInList = [
             unoptimized
             className="object-cover group-hover:scale-105 transition-transform duration-300"
           />
-          <div className={`absolute inset-0 flex items-center justify-center bg-black/40 ${isCurrent ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} transition-opacity`}>
-            <Play className="w-5 h-5 text-white fill-white" />
+          <div
+            className={`absolute inset-0 flex items-center justify-center bg-black/40 ${
+              isCurrent ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+            } transition-opacity`}
+          >
+            {isLoading ? (
+              <Loader2 className="w-5 h-5 text-sky-400 animate-spin" />
+            ) : isPlaying ? (
+              <Pause className="w-5 h-5 text-white fill-white" />
+            ) : (
+              <Play className="w-5 h-5 text-white fill-white" />
+            )}
           </div>
         </div>
 

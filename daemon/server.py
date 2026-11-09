@@ -4,7 +4,7 @@ import shutil
 import subprocess
 from pathlib import Path
 from fastapi import FastAPI, HTTPException, Query, Request, Body
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 
@@ -236,34 +236,19 @@ def get_mp3_file(id: str, token: str = Query(None)):
             file_path = f
             break
 
-    # Se ainda não existe no disco, baixa agora em background sob demanda
+    # Se ainda não existe no disco, obtém a URL de stream direto instantâneo do YouTube sem esperar baixar!
     if not file_path or not file_path.exists():
         url = f"https://www.youtube.com/watch?v={id}"
-        filename = f"{id}.mp3"
-        cmd = [
-            YTDLP_PATH,
-            "--ffmpeg-location", FFMPEG_PATH,
-            "-x", "--audio-format", "mp3",
-            "-o", str(DOWNLOADS_DIR / f"{id}.%(ext)s"),
-            url
-        ]
-        res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        if res.returncode == 0:
-            file_path = DOWNLOADS_DIR / filename
-            catalog[id] = {
-                "id": id,
-                "title": id,
-                "artist": "YouTube",
-                "filename": filename,
-                "durationFormatted": "--:--",
-                "durationSeconds": 0,
-                "thumbnailUrl": f"https://i.ytimg.com/vi/{id}/hqdefault.jpg",
-                "updatedAt": int(file_path.stat().st_mtime * 1000)
-            }
-            save_catalog(catalog)
+        # Obtém a URL de stream do áudio imediatamente (demora ~300ms em vez de minutos)
+        cmd_url = [YTDLP_PATH, "-g", "-f", "ba/b", url]
+        res_url = subprocess.run(cmd_url, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        if res_url.returncode == 0:
+            direct_stream_url = res_url.stdout.strip().split("\n")[-1]
+            if direct_stream_url.startswith("http"):
+                return RedirectResponse(direct_stream_url, status_code=307)
 
     if not file_path or not file_path.exists():
-        raise HTTPException(status_code=404, detail="Arquivo de áudio não encontrado no disco do PC")
+        raise HTTPException(status_code=404, detail="Não foi possível iniciar o áudio desta música")
 
     return FileResponse(
         path=file_path,
