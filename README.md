@@ -87,3 +87,10 @@ npm run dev
 | `npm test` | Roda a suíte de testes Vitest |
 | `npm run build` | Valida o build de produção Next.js |
 | `vercel --prod` | Faz deploy de qualquer alteração no frontend |
+
+---
+
+## 🗺️ Roadmap de Novas Funcionalidades
+
+Para o planejamento e arquitetura detalhada das próximas features planejadas:
+- 💿 [**Perfil de Artista, Álbuns & Discografia**](docs/ROADMAP_ARTISTS_ALBUMS.md): Navegação por artistas, listagem de discografia/álbuns, ordem oficial das faixas e download em lote de álbuns inteiros.
