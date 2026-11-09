@@ -14,6 +14,7 @@ import { MainPlayerBar } from '@/features/player/components/MainPlayerBar';
 import { LibraryView } from '@/features/library/components/LibraryView';
 import { PlaylistsView } from '@/features/playlists/components/PlaylistsView';
 import { ThemeSelector } from '@/features/themes/components/ThemeSelector';
+import { LocalConnectButton } from '@/features/player/components/LocalConnectButton';
 
 const MainShell: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabNavigation>(TabNavigation.SEARCH);
@@ -75,7 +76,9 @@ const MainShell: React.FC = () => {
           </div>
 
           {/* Navegação entre Abas */}
-          <nav className="flex items-center gap-1 bg-zinc-900/60 p-1 rounded-xl border border-zinc-800/80">
+          <div className="flex items-center gap-2">
+            <LocalConnectButton />
+            <nav className="flex items-center gap-1 bg-zinc-900/60 p-1 rounded-xl border border-zinc-800/80">
             {[
               { id: TabNavigation.SEARCH, label: 'Buscar', icon: Search },
               { id: TabNavigation.LIBRARY, label: 'Offline', icon: HardDrive },
@@ -105,6 +108,7 @@ const MainShell: React.FC = () => {
               );
             })}
           </nav>
+          </div>
         </div>
       </header>
 

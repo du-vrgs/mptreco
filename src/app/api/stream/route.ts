@@ -1,12 +1,7 @@
 import { NextResponse } from 'next/server';
-
-// Instâncias de Invidious / Piped públicas e seguras como proxies de fallback
-const INVIDIOUS_INSTANCES = [
-  'https://inv.nadeko.net',
-  'https://invidious.nerdvpn.de',
-  'https://invidious.jing.rocks',
-  'https://yt.artemislena.eu',
-];
+import { execFile } from 'child_process';
+import path from 'path';
+import fs from 'fs';
 
 export const GET = async (request: Request) => {
   try {
@@ -17,71 +12,72 @@ export const GET = async (request: Request) => {
       return NextResponse.json({ error: 'Video ID obrigatório' }, { status: 400 });
     }
 
-    // Tentar obter stream de áudio através das APIs públicas do ecossistema Invidious
-    for (const instance of INVIDIOUS_INSTANCES) {
+    // 1. Tentar execução local via binário yt-dlp do projeto ou do sistema
+    const venvYtDlp = path.resolve(process.cwd(), '.venv/bin/yt-dlp');
+    const localBinary = fs.existsSync(venvYtDlp) ? venvYtDlp : 'yt-dlp';
+
+    const getLocalStreamUrl = (): Promise<string | null> => {
+      return new Promise((resolve) => {
+        execFile(
+          localBinary,
+          ['-g', '-f', 'ba/b', `https://www.youtube.com/watch?v=${videoId}`],
+          (error, stdout) => {
+            if (error || !stdout) {
+              resolve(null);
+              return;
+            }
+            const urls = stdout.trim().split('\n').filter((l) => l.startsWith('http'));
+            resolve(urls.length > 0 ? urls[0] : null);
+          }
+        );
+      });
+    };
+
+    const directUrl = await getLocalStreamUrl();
+    if (directUrl) {
+      return NextResponse.json({
+        streamUrl: directUrl,
+        container: 'webm',
+        source: 'local_ytdlp',
+      });
+    }
+
+    // 2. Fallbacks de instâncias públicas caso yt-dlp não esteja disponível
+    const fallbackInstances = [
+      'https://pipedapi.kavin.rocks',
+      'https://api.piped.privacy.com.de',
+      'https://invidious.nerdvpn.de',
+      'https://inv.nadeko.net',
+    ];
+
+    for (const inst of fallbackInstances) {
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 4000);
-
-        const response = await fetch(`${instance}/api/v1/videos/${videoId}?fields=adaptiveFormats,formatStreams`, {
+        const timeoutId = setTimeout(() => controller.abort(), 3500);
+        const res = await fetch(`${inst}/streams/${videoId}`, {
           signal: controller.signal,
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-          },
+          headers: { 'User-Agent': 'Mozilla/5.0' },
         });
         clearTimeout(timeoutId);
 
-        if (response.ok) {
-          const data = await response.json();
-          // Procurar formatos de áudio apenas (audio/mp4, audio/webm, m4a, opus)
-          const audioFormats = (data.adaptiveFormats || []).filter((f: { type?: string }) =>
-            f.type && f.type.startsWith('audio/')
-          );
-
-          if (audioFormats.length > 0) {
-            // Selecionar o melhor bitrate de áudio
-            audioFormats.sort((a: { bitrate?: number }, b: { bitrate?: number }) => (b.bitrate || 0) - (a.bitrate || 0));
-            const bestAudio = audioFormats[0];
-
+        if (res.ok) {
+          const data = await res.json();
+          const audios = data.audioStreams || [];
+          if (audios.length > 0) {
             return NextResponse.json({
-              streamUrl: bestAudio.url,
-              container: bestAudio.container || 'mp4',
-              bitrate: bestAudio.bitrate,
+              streamUrl: audios[0].url,
+              container: audios[0].format || 'm4a',
+              source: 'piped_fallback',
             });
           }
         }
       } catch {
-        // Tenta próxima instância silenciosamente
         continue;
       }
     }
 
-    // Fallback: Cobalt API pública ou Stream Proxy alternativo
-    const cobaltResponse = await fetch('https://api.cobalt.tools/api/json', {
-      method: 'POST',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        url: `https://www.youtube.com/watch?v=${videoId}`,
-        downloadMode: 'audio',
-        audioFormat: 'mp3',
-      }),
-    });
-
-    if (cobaltResponse.ok) {
-      const cobaltData = await cobaltResponse.json();
-      if (cobaltData.url) {
-        return NextResponse.json({
-          streamUrl: cobaltData.url,
-          container: 'mp3',
-        });
-      }
-    }
-
     return NextResponse.json(
-      { error: 'Não foi possível extrair stream de áudio no momento.' },
+      { error: 'Não foi possível extrair o áudio no momento.' },
       { status: 502 }
     );
   } catch (error) {
