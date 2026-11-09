@@ -17,9 +17,7 @@ export const useAudioPlayerHelper = () => {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
-  const sourceNodeRef = useRef<MediaElementAudioSourceNode | null>(null);
 
-  // Inicializar Áudio e Web Audio API para o Visualizador
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
@@ -49,7 +47,7 @@ export const useAudioPlayerHelper = () => {
     };
 
     const handleError = () => {
-      console.error('Erro de reprodução no áudio');
+      console.error('Erro de reprodução no elemento áudio:', audio.error);
       setPlaybackState(PlaybackState.ERROR);
     };
 
@@ -71,7 +69,6 @@ export const useAudioPlayerHelper = () => {
     };
   }, []);
 
-  // Conectar Web Audio API (AnalyserNode) para visualizador do WMP/Winamp
   const initVisualizerNode = useCallback(() => {
     if (!audioRef.current || audioContextRef.current) return;
     try {
@@ -86,13 +83,11 @@ export const useAudioPlayerHelper = () => {
 
       audioContextRef.current = ctx;
       analyserRef.current = analyser;
-      sourceNodeRef.current = source;
     } catch (err) {
-      console.warn('Web Audio Context não pôde ser inicializado automaticamente:', err);
+      console.warn('Web Audio Context:', err);
     }
   }, []);
 
-  // Tocar uma faixa específica
   const playTrack = useCallback(async (track: Track, newQueue?: Track[]) => {
     const audio = audioRef.current;
     if (!audio) return;
@@ -122,20 +117,15 @@ export const useAudioPlayerHelper = () => {
           throw new Error('Arquivo offline não encontrado');
         }
       } else {
-        // Obter stream URL online (enviando token se existir)
         const token = typeof window !== 'undefined' ? localStorage.getItem('mptreco_admin_token') : null;
         const tokenParam = token ? `&token=${encodeURIComponent(token)}` : '';
-        const response = await fetch(`/api/stream?id=${track.id}${tokenParam}`);
-        if (!response.ok) throw new Error('Falha ao obter áudio do YouTube');
-        const data = await response.json();
-        audioSrc = data.streamUrl;
+        audioSrc = `/api/stream?id=${track.id}${tokenParam}`;
       }
 
       audio.src = audioSrc;
       await audio.play();
       setPlaybackState(PlaybackState.PLAYING);
 
-      // Configurar MediaSession para tocar em segundo plano com tela desligada
       if ('mediaSession' in navigator) {
         navigator.mediaSession.metadata = new MediaMetadata({
           title: track.title,
@@ -183,7 +173,7 @@ export const useAudioPlayerHelper = () => {
       if (repeatMode === RepeatMode.ALL) {
         nextIndex = 0;
       } else {
-        return; // Chegou ao fim da fila
+        return;
       }
     }
 
@@ -194,7 +184,6 @@ export const useAudioPlayerHelper = () => {
   const playPrevious = useCallback(() => {
     if (queue.length === 0 || currentIndex === -1) return;
     
-    // Se já tocou mais de 3 segundos, volta pro início da música
     if (audioRef.current && audioRef.current.currentTime > 3) {
       audioRef.current.currentTime = 0;
       return;
@@ -236,7 +225,6 @@ export const useAudioPlayerHelper = () => {
     }
   }, [isMuted, volume]);
 
-  // Avanço automático ao terminar a faixa
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
@@ -251,7 +239,6 @@ export const useAudioPlayerHelper = () => {
     };
   }, [playNext]);
 
-  // Controles de Media Session (Fone de ouvido, Lockscreen, Tela desligada)
   useEffect(() => {
     if (typeof window === 'undefined' || !('mediaSession' in navigator)) return;
 
