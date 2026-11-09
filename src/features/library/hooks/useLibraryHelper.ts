@@ -79,12 +79,12 @@ export const useLibraryHelper = () => {
   }, []);
 
   const syncWithPc = useCallback(async () => {
-    const token = typeof window !== 'undefined' ? localStorage.getItem('mptreco_admin_token') : null;
-    if (!token) return;
-
+    // No Desktop local (ou quando logado), sincroniza a lista de tracks do daemon
     try {
       setIsSyncing(true);
-      const res = await fetch(`/api/sync?token=${encodeURIComponent(token)}`);
+      const token = typeof window !== 'undefined' ? localStorage.getItem('mptreco_admin_token') : null;
+      const tokenParam = token ? `?token=${encodeURIComponent(token)}` : '';
+      const res = await fetch(`/api/sync${tokenParam}`);
       if (res.ok) {
         const data = await res.json();
         const serverTracks: Track[] = (data.tracks || []).map((t: Track) => ({
@@ -93,36 +93,37 @@ export const useLibraryHelper = () => {
         }));
         setPcTracks(serverTracks);
 
-        // Identifica quais músicas do PC ainda não foram baixadas no celular (IndexedDB)
-        const currentOffline = await getOfflineTracks();
-        const currentOfflineIds = new Set(currentOffline.map((t) => t.id));
-        const missingTracks = serverTracks.filter((t) => !currentOfflineIds.has(t.id));
+        // Se estiver em modo mobile, salva no cache local IndexedDB e limpa do PC
+        const isMobileMode = typeof window !== 'undefined' && localStorage.getItem('mptreco_mode') === 'mobile';
+        if (isMobileMode) {
+          const currentOffline = await getOfflineTracks();
+          const currentOfflineIds = new Set(currentOffline.map((t) => t.id));
+          const missingTracks = serverTracks.filter((t) => !currentOfflineIds.has(t.id));
 
-        // Baixa todas as novas músicas diretamente para o armazenamento do celular
-        for (const track of missingTracks) {
-          try {
-            const tokenParam = token ? `&token=${encodeURIComponent(token)}` : '';
-            const streamUrl = `/api/stream?id=${track.id}${tokenParam}`;
-            const fileRes = await fetch(streamUrl);
-            if (fileRes.ok) {
-              const blob = await fileRes.blob();
-              await saveTrackOffline(track, blob);
+          for (const track of missingTracks) {
+            try {
+              const streamParam = token ? `&token=${encodeURIComponent(token)}` : '';
+              const streamUrl = `/api/stream?id=${track.id}${streamParam}`;
+              const fileRes = await fetch(streamUrl);
+              if (fileRes.ok) {
+                const blob = await fileRes.blob();
+                await saveTrackOffline(track, blob);
 
-              // Após salvar no celular com sucesso, chama endpoint para limpar o arquivo .mp3 do PC
-              try {
-                await fetch(`/api/cleanup-pc?id=${encodeURIComponent(track.id)}${tokenParam}`, {
-                  method: 'POST',
-                });
-              } catch (cleanErr) {
-                console.warn(`Aviso ao limpar arquivo da track ${track.id} no PC:`, cleanErr);
+                try {
+                  await fetch(`/api/cleanup-pc?id=${encodeURIComponent(track.id)}${streamParam}`, {
+                    method: 'POST',
+                  });
+                } catch (cleanErr) {
+                  console.warn(`Aviso ao limpar arquivo da track ${track.id} no PC:`, cleanErr);
+                }
               }
+            } catch (downloadErr) {
+              console.warn(`Erro ao baixar música ${track.title} no celular:`, downloadErr);
             }
-          } catch (downloadErr) {
-            console.warn(`Erro ao baixar música ${track.title} no celular:`, downloadErr);
           }
         }
 
-        // Atualiza o estado da biblioteca offline após sincronizar e baixar os novos arquivos
+        // Atualiza o estado da biblioteca offline após sincronizar
         await refreshLibrary();
 
         // Dispara evento para sincronizar playlists se houver
