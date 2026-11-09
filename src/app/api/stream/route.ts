@@ -15,7 +15,7 @@ export const GET = async (request: Request) => {
 
     if (token !== ADMIN_TOKEN) {
       return NextResponse.json(
-        { error: 'Acesso restrito: Token de administrador necessário para streaming do túnel.' },
+        { error: 'Acesso restrito: Token de administrador necessário.' },
         { status: 401 }
       );
     }
@@ -36,65 +36,21 @@ export const GET = async (request: Request) => {
     const rawTunnelUrl = (await gistRes.text()).trim();
     if (!rawTunnelUrl.startsWith('https://')) {
       return NextResponse.json(
-        { error: 'Túnel local offline. Inicie o túnel no PC.' },
+        { error: 'Túnel local offline.' },
         { status: 503 }
       );
     }
 
-    // 2. Chamar o daemon local do PC que tem o yt-dlp sem bloqueio
-    const bridgeRes = await fetch(
-      `${rawTunnelUrl}/stream?id=${videoId}&token=${ADMIN_TOKEN}`,
-      { cache: 'no-store' }
-    );
+    // 2. Redirecionar o navegador para o endpoint de áudio do túnel com CORS e streaming total
+    const audioStreamUrl = `${rawTunnelUrl}/audio?id=${videoId}&token=${ADMIN_TOKEN}`;
 
-    if (!bridgeRes.ok) {
-      return NextResponse.json(
-        { error: 'Erro ao gerar stream no daemon local do PC.' },
-        { status: 502 }
-      );
-    }
-
-    const bridgeData = await bridgeRes.json();
-    const googleVideoUrl = bridgeData.streamUrl;
-
-    if (!googleVideoUrl) {
-      return NextResponse.json(
-        { error: 'URL de áudio não gerada pelo daemon.' },
-        { status: 502 }
-      );
-    }
-
-    // 3. Fazer proxy do áudio diretamente com headers de CORS e Range para streaming e download perfeitos no celular
-    const rangeHeader = request.headers.get('range');
-    const audioHeaders: Record<string, string> = {
-      'User-Agent':
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-    };
-    if (rangeHeader) {
-      audioHeaders['Range'] = rangeHeader;
-    }
-
-    const audioRes = await fetch(googleVideoUrl, {
-      headers: audioHeaders,
-    });
-
-    const responseHeaders = new Headers();
-    responseHeaders.set('Access-Control-Allow-Origin', '*');
-    responseHeaders.set('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
-    responseHeaders.set('Access-Control-Allow-Headers', 'Range, Content-Type');
-    responseHeaders.set('Content-Type', audioRes.headers.get('content-type') || 'audio/webm');
-    responseHeaders.set('Accept-Ranges', 'bytes');
-
-    if (audioRes.headers.get('content-length')) {
-      responseHeaders.set('Content-Length', audioRes.headers.get('content-length')!);
-    }
-    if (audioRes.headers.get('content-range')) {
-      responseHeaders.set('Content-Range', audioRes.headers.get('content-range')!);
-    }
-
-    return new Response(audioRes.body, {
-      status: audioRes.status,
-      headers: responseHeaders,
+    return NextResponse.redirect(audioStreamUrl, {
+      status: 307,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, OPTIONS',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+      },
     });
   } catch (error) {
     console.error('[API /api/stream] Erro:', error);

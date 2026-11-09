@@ -1,10 +1,7 @@
-INFO:     Started server process [12631]
+INFO:     Started server process [14895]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
 INFO:     Uvicorn running on http://0.0.0.0:7777 (Press CTRL+C to quit)
-INFO:     3.224.234.70:0 - "GET / HTTP/1.1" 404 Not Found
-INFO:     3.219.219.215:0 - "GET /stream?id=FGBhQbmPwH8&token=a8ead6af9a2e9d762a087839b245b246ef2da951889a9912 HTTP/1.1" 200 OK
-INFO:     18.210.28.151:0 - "GET /stream?id=UcJ-2ywFun4&token=a8ead6af9a2e9d762a087839b245b246ef2da951889a9912 HTTP/1.1" 200 OK
-INFO:     18.210.28.151:0 - "GET /stream?id=UcJ-2ywFun4&token=a8ead6af9a2e9d762a087839b245b246ef2da951889a9912 HTTP/1.1" 200 OK
-INFO:     18.210.28.151:0 - "GET /stream?id=UcJ-2ywFun4&token=a8ead6af9a2e9d762a087839b245b246ef2da951889a9912 HTTP/1.1" 200 OK
-INFO:     100.49.45.36:0 - "GET /stream?id=FGBhQbmPwH8&token=a8ead6af9a2e9d762a087839b245b246ef2da951889a9912 HTTP/1.1" 200 OK
+INFO:     45.174.237.140:0 - "HEAD /audio?id=FGBhQbmPwH8&token=a8ead6af9a2e9d762a087839b245b246ef2da951889a9912 HTTP/1.1" 405 Method Not Allowed
+INFO:     45.174.237.140:0 - "GET /audio?id=FGBhQbmPwH8&token=a8ead6af9a2e9d762a087839b245b246ef2da951889a9912 HTTP/1.1" 200 OK
+INFO:     45.174.237.140:0 - "GET /audio?id=FGBhQbmPwH8&token=a8ead6af9a2e9d762a087839b245b246ef2da951889a9912 HTTP/1.1" 200 OK
