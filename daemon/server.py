@@ -2,7 +2,7 @@ import os
 import json
 import subprocess
 from pathlib import Path
-from fastapi import FastAPI, HTTPException, Query, Request
+from fastapi import FastAPI, HTTPException, Query, Request, Body
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
@@ -82,7 +82,7 @@ def list_tracks(token: str = Query(None)):
     return {"tracks": sorted(tracks, key=lambda x: x["updatedAt"], reverse=True), "playlists": load_playlists()}
 
 @app.post("/playlists")
-def update_playlists(request_body: list, token: str = Query(None)):
+def update_playlists(request_body: list = Body(...), token: str = Query(None)):
     verify_token(token)
     save_playlists_file(request_body)
     return {"status": "success", "playlists": request_body}
