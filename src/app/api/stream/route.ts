@@ -20,7 +20,7 @@ export const GET = async (request: Request) => {
       );
     }
 
-    // 1. Obter a URL do túnel ativa a partir do Gist
+    // 1. Obter a URL do túnel do PC a partir do Gist
     const gistRes = await fetch(`${GIST_URL}?t=${Date.now()}`, {
       cache: 'no-store',
       headers: { 'Cache-Control': 'no-cache' },
@@ -28,7 +28,7 @@ export const GET = async (request: Request) => {
 
     if (!gistRes.ok) {
       return NextResponse.json(
-        { error: 'Túnel local não configurado ou inacessível.' },
+        { error: 'Túnel local não configurado.' },
         { status: 503 }
       );
     }
@@ -36,19 +36,19 @@ export const GET = async (request: Request) => {
     const rawTunnelUrl = (await gistRes.text()).trim();
     if (!rawTunnelUrl.startsWith('https://')) {
       return NextResponse.json(
-        { error: 'Túnel local offline.' },
+        { error: 'Túnel local offline. Ligue o daemon no PC.' },
         { status: 503 }
       );
     }
 
-    // 2. Redirecionar o navegador para o endpoint de áudio do túnel com CORS e streaming total
-    const audioStreamUrl = `${rawTunnelUrl}/audio?id=${videoId}&token=${ADMIN_TOKEN}`;
+    // 2. Redirecionar para o endpoint de MP3 local do PC via túnel
+    const fileUrl = `${rawTunnelUrl}/file/${videoId}.mp3?token=${ADMIN_TOKEN}`;
 
-    return NextResponse.redirect(audioStreamUrl, {
+    return NextResponse.redirect(fileUrl, {
       status: 307,
       headers: {
         'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, OPTIONS',
+        'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
         'Cache-Control': 'no-cache, no-store, must-revalidate',
       },
     });
