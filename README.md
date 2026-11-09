@@ -1,82 +1,104 @@
 # 🎵 mptreco
 
-**mptreco** é um web app nostálgico e moderno inspirado nos reprodutores de mídia dos anos 2000 (Windows Media Player, Winamp, Frutiger Aero) combinado com a robustez e performance das tecnologias web atuais.
-
-Permite buscar vídeos e músicas no YouTube, ouvir instantaneamente via stream direto sem precisar baixar, ou salvar localmente no dispositivo (IndexedDB) para escutar 100% offline — **com a tela desligada ou em segundo plano**!
+**mptreco** é um ecossistema musical moderno e nostálgico inspirado nos anos 2000 (Windows Media Player clássico, Winamp, Frutiger Aero). Ele une uma central desktop para buscar e baixar músicas em MP3 de alta fidelidade com um **Mobile Web App / PWA** ultra-rápido para reprodução offline e em segundo plano (com tela desligada).
 
 ---
 
-## ✨ Funcionalidades Principais
+## 🏛 Como Funciona a Arquitetura (Flow Geral)
 
-1. **Busca sem Quota de API**:
-   - Pesquisa rápida de vídeos, músicas e canais sem necessidade de API Key do Google Cloud.
-2. **Reprodução com Tela Desligada / Segundo Plano**:
-   - Integração completa com a **MediaSession API** (`navigator.mediaSession`), exibindo controles na tela de bloqueio, smartwatch e fones bluetooth.
-   - PWA instalável (`standalone`).
-3. **Modo Stream Direto (Play Imediato)**:
-   - Dê play instantaneamente em qualquer resultado sem precisar baixar o áudio no disco.
-4. **Armazenamento Offline no Dispositivo (PWA / IndexedDB)**:
-   - Baixe as músicas para a memória do navegador (`idb-keyval`).
-   - Escute no metrô, avião ou sem internet.
-   - Suporte a importar arquivos `.mp3` que já estejam no seu celular ou computador.
-5. **Visualizador de Espectro de Áudio Real (Web Audio API)**:
-   - Equalizador dinâmico estilo anos 2000 desenhado em Canvas reagindo às frequências sonoras da música.
-6. **Skins & Temas Nostálgicos**:
-   - **WMP 2000 Corona**: Botões orbes azuis translúcidos, detalhes cromados e gradientes clássicos.
-   - **Winamp Retro Bento**: Neon verde, displays escuros e fonte mono.
-   - **Frutiger Aero**: Vidro translúcido (glassmorphism) e reflexos aquosos.
-   - **Modern Minimal**: Tema escuro minimalista moderno.
-7. **Playlists Nomeadas**:
-   - Criação, edição e reprodução de playlists personalizadas.
+```
+[ Desktop Local (Seu PC) ]
+  ├── Next.js Local (:3000) ──> Busca no YouTube & solicita download
+  └── Daemon Local (:7777)  ──> yt-dlp + ffmpeg baixa em /daemon/downloads/
+         ▲
+         │ (Túnel Cloudflare via systemd service)
+         ▼
+[ Gist GitHub (Heartbeat) ] ──> Publica URL do túnel automaticamente
+         ▲
+         │
+[ Vercel (https://mptreco.vercel.app) ]
+  ├── Mobile PWA no Celular ──> Lê túnel via Gist e toca músicas do PC
+  └── IndexedDB Local (Celular) ──> Salva músicas para tocar 100% offline
+```
 
----
-
-## 🏗 Arquitetura do Frontend (Vertical Slice / Micro-frontends Style)
-
-Seguindo as convenções de arquitetura declaradas:
-- `src/features/player/`:
-  - `components/`: `MainPlayerBar.tsx`, `SpectrumVisualizer.tsx`.
-  - `hooks/`: `useAudioPlayerHelper.ts`.
-  - `context/`: `PlayerContext.tsx`.
-- `src/features/library/`:
-  - `components/`: `LibraryView.tsx`.
-  - `hooks/`: `useLibraryHelper.ts`.
-  - `services/`: `indexedDbStorageService.ts`.
-  - `context/`: `LibraryContext.tsx`.
-- `src/features/playlists/`:
-  - `components/`: `PlaylistsView.tsx`.
-  - `hooks/`: `usePlaylistHelper.ts`.
-  - `context/`: `PlaylistContext.tsx`.
-- `src/features/themes/`:
-  - `components/`: `ThemeSelector.tsx`.
-  - `hooks/`: `useThemeHelper.ts`.
-  - `context/`: `ThemeContext.tsx`.
-- `src/features/search/`:
-  - `components/`: `SearchInput.tsx`, `TrackCard.tsx`.
-  - `hooks/`: `useSearchHelper.ts`.
-- `src/shared/types/`:
-  - Tipagem estrita com `enum` (`PlaybackState`, `ThemeSkin`, `AudioSourceType`, `RepeatMode`).
+1. **No seu Desktop**:
+   - Você roda a interface desktop localmente.
+   - Pesquisa qualquer música ou set no YouTube e clica em **Baixar**.
+   - O daemon local baixa via `yt-dlp` + `ffmpeg`, salva o arquivo `.mp3` em `daemon/downloads/` e registra em `daemon/downloads/library.json`.
+2. **Túnel Automático (Cloudflare + GitHub Gist)**:
+   - Um serviço de segundo plano (`systemd`) sobe o daemon na porta `7777`, abre o túnel Cloudflare e atualiza o seu Gist público com a URL temporária ativa.
+3. **No Celular (PWA Vercel)**:
+   - Você abre o app instalado pelo celular (`https://mptreco.vercel.app`).
+   - O celular sincroniza com as músicas baixadas no PC via túnel.
+   - Você pode dar play instantâneo ou baixar pro cache do celular (`IndexedDB`) para ouvir na rua sem internet e com a tela apagada.
 
 ---
 
-## 🚀 Como Executar Localmente
+## 🚀 Como Rodar Amanhã (Guia Rápido)
+
+### 1. O Túnel / Daemon Local (Já roda sozinho via systemd!)
+
+O daemon local com `cloudflared` foi configurado como um serviço do sistema do usuário (`systemd`). Ele inicia automaticamente ao ligar o PC.
+
+- **Verificar se o túnel e daemon estão rodando:**
+  ```bash
+  systemctl --user status mptreco.service
+  ```
+- **Iniciar o serviço (se estiver parado):**
+  ```bash
+  systemctl --user start mptreco.service
+  ```
+- **Reiniciar o serviço (gera novo túnel e atualiza o Gist):**
+  ```bash
+  systemctl --user restart mptreco.service
+  ```
+- **Ver os logs do túnel / downloads:**
+  ```bash
+  journalctl --user -u mptreco.service -f
+  # Ou diretamente nos logs do daemon:
+  tail -f /home/edu/Projects/mptreco/daemon/server.log
+  tail -f /home/edu/Projects/mptreco/daemon/tunnel.log
+  ```
+
+---
+
+### 2. Rodar a Central Desktop para Baixar Novas Músicas
+
+Quando você quiser abrir o app no seu computador para pesquisar e baixar novos sons:
 
 ```bash
-# Instalar dependências
-npm install
-
-# Rodar servidor de desenvolvimento
+cd /home/edu/Projects/mptreco
 npm run dev
 ```
 
-Abra [http://localhost:3000](http://localhost:3000) no seu navegador.
+1. Acesse no navegador do seu PC:
+   👉 **http://localhost:3000**
+2. Se quiser acessar com o painel de status local ativo, use o token de admin:
+   👉 **http://localhost:3000?token=a8ead6af9a2e9d762a087839b245b246ef2da951889a9912**
+3. Busque qualquer música no campo de busca e clique em **Baixar**.
+4. O download será processado pelo seu daemon local e salvo na pasta `daemon/downloads/`.
 
 ---
 
-## ☁️ Deploy na Vercel
+### 3. Acessar pelo Celular
 
-O projeto foi preparado e estruturado para deploy direto na Vercel via CLI:
+Basta abrir o aplicativo instalado no seu celular (PWA) ou acessar:
+👉 **https://mptreco.vercel.app**
 
-```bash
-vercel --prod
-```
+O app móvel já abre automaticamente no modo **Mobile Pure Player** com seu token configurado:
+- Lista todas as músicas baixadas no PC via túnel com o status `No PC`.
+- Exibe o botão de play com controles e tela de bloqueio (MediaSession API).
+- Salva no armazenamento offline do celular ao tocar ou sincronizar.
+
+---
+
+## 🛠 Comandos e Utilitários Úteis
+
+| Comando | Descrição |
+|---|---|
+| `npm run dev` | Inicia o frontend Next.js no computador (:3000) |
+| `npm test` | Roda a suíte de testes Vitest |
+| `npm run build` | Valida o build de produção Next.js |
+| `systemctl --user status mptreco.service` | Checa se o daemon e túnel estão ativos |
+| `systemctl --user restart mptreco.service` | Reinicia o daemon e publica novo túnel no Gist |
+| `vercel --prod` | Faz deploy de qualquer alteração no frontend |
