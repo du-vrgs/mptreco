@@ -81,9 +81,9 @@ npm run dev
 
 | Comando | Descrição |
 |---|---|
-| `npm run dev` | Inicia o frontend Next.js no computador (:3000) |
+| `npm run all` | Inicia o Next.js (:3000), o Daemon (:7777) e o Túnel Cloudflare juntos em um único comando |
+| `npm run dev` | Inicia somente o frontend Next.js (:3000) |
+| `npm run tunnel` | Inicia somente o Daemon local (:7777) e o Túnel Cloudflare |
 | `npm test` | Roda a suíte de testes Vitest |
 | `npm run build` | Valida o build de produção Next.js |
-| `systemctl --user status mptreco.service` | Checa se o daemon e túnel estão ativos |
-| `systemctl --user restart mptreco.service` | Reinicia o daemon e publica novo túnel no Gist |
 | `vercel --prod` | Faz deploy de qualquer alteração no frontend |

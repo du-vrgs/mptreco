@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev -H 0.0.0.0",
     "tunnel": "bash daemon/start.sh",
+    "all": "bash -c 'bash daemon/start.sh & next dev -H 0.0.0.0'",
     "build": "next build",
     "start": "next start",
     "test": "vitest run",
