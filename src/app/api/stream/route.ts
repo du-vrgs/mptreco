@@ -1,59 +1,62 @@
 import { NextResponse } from 'next/server';
-import { execFile } from 'child_process';
-import path from 'path';
-import fs from 'fs';
+
+const ADMIN_TOKEN = process.env.MPTRECO_ADMIN_TOKEN || 'a8ead6af9a2e9d762a087839b245b246ef2da951889a9912';
+const GIST_URL = 'https://gist.githubusercontent.com/du-vrgs/32466da6692cf6e85f1ae35fc410189d/raw/current_tunnel_url.txt';
 
 export const GET = async (request: Request) => {
   try {
     const { searchParams } = new URL(request.url);
     const videoId = searchParams.get('id');
+    const token = searchParams.get('token');
 
     if (!videoId) {
       return NextResponse.json({ error: 'Video ID obrigatório' }, { status: 400 });
     }
 
-    // 1. Tentar execução local via binário yt-dlp do projeto ou do sistema
-    const venvYtDlp = path.resolve(process.cwd(), '.venv/bin/yt-dlp');
-    const localBinary = fs.existsSync(venvYtDlp) ? venvYtDlp : 'yt-dlp';
+    // 1. Se o token do admin foi enviado, buscar o áudio através da ponte local automática do PC
+    if (token === ADMIN_TOKEN) {
+      try {
+        const gistRes = await fetch(`${GIST_URL}?t=${Date.now()}`, {
+          cache: 'no-store',
+          headers: { 'Cache-Control': 'no-cache' },
+        });
 
-    const getLocalStreamUrl = (): Promise<string | null> => {
-      return new Promise((resolve) => {
-        execFile(
-          localBinary,
-          ['-g', '-f', 'ba/b', `https://www.youtube.com/watch?v=${videoId}`],
-          (error, stdout) => {
-            if (error || !stdout) {
-              resolve(null);
-              return;
+        if (gistRes.ok) {
+          const rawTunnelUrl = (await gistRes.text()).trim();
+          if (rawTunnelUrl.startsWith('https://')) {
+            const bridgeRes = await fetch(
+              `${rawTunnelUrl}/stream?id=${videoId}&token=${ADMIN_TOKEN}`,
+              { cache: 'no-store' }
+            );
+
+            if (bridgeRes.ok) {
+              const data = await bridgeRes.json();
+              if (data.streamUrl) {
+                return NextResponse.json({
+                  streamUrl: data.streamUrl,
+                  container: data.container || 'webm',
+                  source: 'local_engine_tunnel',
+                });
+              }
             }
-            const urls = stdout.trim().split('\n').filter((l) => l.startsWith('http'));
-            resolve(urls.length > 0 ? urls[0] : null);
           }
-        );
-      });
-    };
-
-    const directUrl = await getLocalStreamUrl();
-    if (directUrl) {
-      return NextResponse.json({
-        streamUrl: directUrl,
-        container: 'webm',
-        source: 'local_ytdlp',
-      });
+        }
+      } catch (err) {
+        console.warn('Erro ao conectar com ponte local via túnel:', err);
+      }
     }
 
-    // 2. Fallbacks de instâncias públicas caso yt-dlp não esteja disponível
+    // 2. Fallbacks públicos (caso o PC esteja offline ou sem token)
     const fallbackInstances = [
       'https://pipedapi.kavin.rocks',
       'https://api.piped.privacy.com.de',
-      'https://invidious.nerdvpn.de',
       'https://inv.nadeko.net',
     ];
 
     for (const inst of fallbackInstances) {
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 3500);
+        const timeoutId = setTimeout(() => controller.abort(), 3000);
         const res = await fetch(`${inst}/streams/${videoId}`, {
           signal: controller.signal,
           headers: { 'User-Agent': 'Mozilla/5.0' },
@@ -77,7 +80,7 @@ export const GET = async (request: Request) => {
     }
 
     return NextResponse.json(
-      { error: 'Não foi possível extrair o áudio no momento.' },
+      { error: 'Não foi possível extrair o áudio. Verifique se o daemon local está ativo ou tente novamente.' },
       { status: 502 }
     );
   } catch (error) {

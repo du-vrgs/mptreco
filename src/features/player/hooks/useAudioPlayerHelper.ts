@@ -122,8 +122,10 @@ export const useAudioPlayerHelper = () => {
           throw new Error('Arquivo offline não encontrado');
         }
       } else {
-        // Obter stream URL online
-        const response = await fetch(`/api/stream?id=${track.id}`);
+        // Obter stream URL online (enviando token se existir)
+        const token = typeof window !== 'undefined' ? localStorage.getItem('mptreco_admin_token') : null;
+        const tokenParam = token ? `&token=${encodeURIComponent(token)}` : '';
+        const response = await fetch(`/api/stream?id=${track.id}${tokenParam}`);
         if (!response.ok) throw new Error('Falha ao obter áudio do YouTube');
         const data = await response.json();
         audioSrc = data.streamUrl;

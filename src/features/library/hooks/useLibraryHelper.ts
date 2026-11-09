@@ -36,8 +36,10 @@ export const useLibraryHelper = () => {
 
     setDownloadingIds((prev) => new Set(prev).add(track.id));
     try {
-      // 1. Obter stream URL
-      const streamRes = await fetch(`/api/stream?id=${track.id}`);
+      // 1. Obter stream URL enviando token se presente
+      const token = typeof window !== 'undefined' ? localStorage.getItem('mptreco_admin_token') : null;
+      const tokenParam = token ? `&token=${encodeURIComponent(token)}` : '';
+      const streamRes = await fetch(`/api/stream?id=${track.id}${tokenParam}`);
       if (!streamRes.ok) throw new Error('Não foi possível obter URL do áudio');
       const streamData = await streamRes.json();
 
