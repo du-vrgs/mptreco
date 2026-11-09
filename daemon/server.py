@@ -127,10 +127,35 @@ def get_mp3_file(id: str, token: str = Query(None)):
             file_path = candidate
 
     if not file_path:
-        # Fallback de busca por ID
         for f in DOWNLOADS_DIR.glob(f"*{id}*.mp3"):
             file_path = f
             break
+
+    # Se ainda não existe no disco, baixa agora em background sob demanda
+    if not file_path or not file_path.exists():
+        url = f"https://www.youtube.com/watch?v={id}"
+        filename = f"{id}.mp3"
+        cmd = [
+            YTDLP_PATH,
+            "--ffmpeg-location", FFMPEG_PATH,
+            "-x", "--audio-format", "mp3",
+            "-o", str(DOWNLOADS_DIR / f"{id}.%(ext)s"),
+            url
+        ]
+        res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        if res.returncode == 0:
+            file_path = DOWNLOADS_DIR / filename
+            catalog[id] = {
+                "id": id,
+                "title": id,
+                "artist": "YouTube",
+                "filename": filename,
+                "durationFormatted": "--:--",
+                "durationSeconds": 0,
+                "thumbnailUrl": f"https://i.ytimg.com/vi/{id}/hqdefault.jpg",
+                "updatedAt": int(file_path.stat().st_mtime * 1000)
+            }
+            save_catalog(catalog)
 
     if not file_path or not file_path.exists():
         raise HTTPException(status_code=404, detail="Arquivo de áudio não encontrado no disco do PC")

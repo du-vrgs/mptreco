@@ -16,5 +16,15 @@
     "durationFormatted": "03:45",
     "durationSeconds": 225,
     "thumbnailUrl": "https://i.ytimg.com/vi/yydNF8tuVmU/hqdefault.jpg"
+  },
+  "FGBhQbmPwH8": {
+    "id": "FGBhQbmPwH8",
+    "title": "Daft Punk - One More Time (Official Video)",
+    "artist": "Daft Punk",
+    "filename": "Daft Punk - Daft Punk - One More Time (Official Video).mp3",
+    "durationFormatted": "5:22",
+    "durationSeconds": 322,
+    "thumbnailUrl": "https://i.ytimg.com/vi/FGBhQbmPwH8/hq720.jpg?sqp=-oaymwEcCNAFEJQDSFXyq4qpAw4IARUAAIhCGAFwAcABBg==&rs=AOn4CLDzMsADWpKK_mrDYOlcX2M5e0vfSA",
+    "updatedAt": 1794249729340
   }
 }

@@ -1,6 +1,4 @@
-INFO:     Started server process [18908]
+INFO:     Started server process [20754]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
 INFO:     Uvicorn running on http://0.0.0.0:7777 (Press CTRL+C to quit)
-INFO:     127.0.0.1:33342 - "GET /list?token=a8ead6af9a2e9d762a087839b245b246ef2da951889a9912 HTTP/1.1" 200 OK
-INFO:     45.174.237.140:0 - "GET /file/x84m3YyO2oU.mp3?token=a8ead6af9a2e9d762a087839b245b246ef2da951889a9912 HTTP/1.1" 404 Not Found
