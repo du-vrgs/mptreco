@@ -72,7 +72,7 @@ export const MobilePlayerView: React.FC = () => {
             title="Sincronizar catálogo com o PC"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
-            <span>{isSyncing ? 'Sincronizando...' : 'Sync PC'}</span>
+            <span>{isSyncing ? 'Sincronizando...' : 'Sync'}</span>
           </button>
 
           <button

@@ -38,18 +38,41 @@ export const useLibraryHelper = () => {
       const res = await fetch(`/api/sync?token=${encodeURIComponent(token)}`);
       if (res.ok) {
         const data = await res.json();
-        const mapped: Track[] = (data.tracks || []).map((t: Track) => ({
+        const serverTracks: Track[] = (data.tracks || []).map((t: Track) => ({
           ...t,
           sourceType: AudioSourceType.YOUTUBE_STREAM,
         }));
-        setPcTracks(mapped);
+        setPcTracks(serverTracks);
+
+        // Identifica quais músicas do PC ainda não foram baixadas no celular (IndexedDB)
+        const currentOffline = await getOfflineTracks();
+        const currentOfflineIds = new Set(currentOffline.map((t) => t.id));
+        const missingTracks = serverTracks.filter((t) => !currentOfflineIds.has(t.id));
+
+        // Baixa todas as novas músicas diretamente para o armazenamento do celular
+        for (const track of missingTracks) {
+          try {
+            const tokenParam = token ? `&token=${encodeURIComponent(token)}` : '';
+            const streamUrl = `/api/stream?id=${track.id}${tokenParam}`;
+            const fileRes = await fetch(streamUrl);
+            if (fileRes.ok) {
+              const blob = await fileRes.blob();
+              await saveTrackOffline(track, blob);
+            }
+          } catch (downloadErr) {
+            console.warn(`Erro ao baixar música ${track.title} no celular:`, downloadErr);
+          }
+        }
+
+        // Atualiza o estado da biblioteca offline após sincronizar e baixar os novos arquivos
+        await refreshLibrary();
       }
     } catch (e) {
       console.warn('PC offline para sincronização:', e);
     } finally {
       setIsSyncing(false);
     }
-  }, []);
+  }, [refreshLibrary]);
 
   useEffect(() => {
     refreshLibrary();
