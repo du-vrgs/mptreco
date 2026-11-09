@@ -67,19 +67,42 @@ def list_tracks(token: str = Query(None)):
     tracks = []
     for video_id, info in catalog.items():
         mp3_path = DOWNLOADS_DIR / info.get("filename", f"{video_id}.mp3")
-        if mp3_path.exists():
-            tracks.append({
-                "id": video_id,
-                "title": info.get("title", video_id),
-                "artist": info.get("artist", "Desconhecido"),
-                "durationFormatted": info.get("durationFormatted", "--:--"),
-                "durationSeconds": info.get("durationSeconds", 0),
-                "thumbnailUrl": info.get("thumbnailUrl", f"https://i.ytimg.com/vi/{video_id}/hqdefault.jpg"),
-                "filename": info.get("filename"),
-                "sizeBytes": mp3_path.stat().st_size,
-                "updatedAt": int(mp3_path.stat().st_mtime * 1000)
-            })
+        is_on_disk = mp3_path.exists()
+        tracks.append({
+            "id": video_id,
+            "title": info.get("title", video_id),
+            "artist": info.get("artist", "Desconhecido"),
+            "durationFormatted": info.get("durationFormatted", "--:--"),
+            "durationSeconds": info.get("durationSeconds", 0),
+            "thumbnailUrl": info.get("thumbnailUrl", f"https://i.ytimg.com/vi/{video_id}/hqdefault.jpg"),
+            "filename": info.get("filename"),
+            "sizeBytes": mp3_path.stat().st_size if is_on_disk else info.get("sizeBytes", 0),
+            "isOnPcDisk": is_on_disk,
+            "updatedAt": info.get("updatedAt", 0)
+        })
     return {"tracks": sorted(tracks, key=lambda x: x["updatedAt"], reverse=True), "playlists": load_playlists()}
+
+@app.post("/cleanup-file/{id}")
+def cleanup_file_from_pc(id: str, token: str = Query(None)):
+    """Deleta apenas o arquivo físico .mp3 do PC após o celular sincronizar, mantendo os metadados no catálogo."""
+    verify_token(token)
+    catalog = load_catalog()
+    deleted = False
+
+    if id in catalog:
+        filename = catalog[id].get("filename")
+        if filename:
+            file_path = DOWNLOADS_DIR / filename
+            if file_path.exists():
+                file_path.unlink()
+                deleted = True
+
+    for f in DOWNLOADS_DIR.glob(f"*{id}*.mp3"):
+        if f.exists():
+            f.unlink()
+            deleted = True
+
+    return {"status": "success", "file_cleaned": deleted, "id": id}
 
 @app.post("/playlists")
 def update_playlists(request_body: list = Body(...), token: str = Query(None)):

@@ -30,6 +30,11 @@ export const getOfflineTracks = async (): Promise<Track[]> => {
   return tracks.sort((a, b) => b.createdAt - a.createdAt);
 };
 
+export const getTrackBlob = async (trackId: string): Promise<Blob | null> => {
+  const blob = await get<Blob>(`${BLOB_PREFIX}${trackId}`);
+  return blob || null;
+};
+
 export const getTrackBlobUrl = async (trackId: string): Promise<string | null> => {
   const blob = await get<Blob>(`${BLOB_PREFIX}${trackId}`);
   if (!blob) return null;

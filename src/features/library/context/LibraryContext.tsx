@@ -18,6 +18,7 @@ interface LibraryContextData {
   discardPendingDownload: (trackId: string) => void;
   removeTrack: (trackId: string) => Promise<void>;
   importLocalFiles: (files: FileList) => Promise<void>;
+  exportLibraryToDisk: () => Promise<void>;
   refreshLibrary: () => Promise<void>;
   getTrackBlobUrl: (trackId: string) => Promise<string | null>;
 }

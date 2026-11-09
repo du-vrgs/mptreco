@@ -30,6 +30,7 @@ export interface Track {
   localBlob?: Blob; // Quando armazenado no IndexedDB
   filename?: string;
   sizeBytes?: number;
+  isOnPcDisk?: boolean;
   createdAt: number;
 }
 

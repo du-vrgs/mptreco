@@ -35,6 +35,7 @@ export const LibraryView: React.FC = () => {
     discardPendingDownload,
     syncWithPc,
     importLocalFiles,
+    exportLibraryToDisk,
   } = useLibrary();
 
   const { playTrack, currentTrack } = usePlayer();
@@ -76,6 +77,15 @@ export const LibraryView: React.FC = () => {
           >
             <Upload className="w-4 h-4 text-sky-400" />
             Importar MP3
+          </button>
+
+          <button
+            onClick={exportLibraryToDisk}
+            className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-zinc-800/80 hover:bg-zinc-700/80 text-zinc-200 text-xs md:text-sm font-medium border border-zinc-700/60 transition-all shadow-sm"
+            title="Exportar todas as músicas salvas para pen drive ou pasta"
+          >
+            <Download className="w-4 h-4 text-emerald-400" />
+            Salvar Lib em Disco / Pen Drive
           </button>
 
           <button

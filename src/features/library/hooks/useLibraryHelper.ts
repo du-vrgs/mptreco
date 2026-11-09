@@ -5,6 +5,7 @@ import {
   saveTrackOffline,
   deleteTrackOffline,
   isTrackDownloaded,
+  getTrackBlob,
   getTrackBlobUrl,
 } from '../services/indexedDbStorageService';
 
@@ -106,6 +107,15 @@ export const useLibraryHelper = () => {
             if (fileRes.ok) {
               const blob = await fileRes.blob();
               await saveTrackOffline(track, blob);
+
+              // Após salvar no celular com sucesso, chama endpoint para limpar o arquivo .mp3 do PC
+              try {
+                await fetch(`/api/cleanup-pc?id=${encodeURIComponent(track.id)}${tokenParam}`, {
+                  method: 'POST',
+                });
+              } catch (cleanErr) {
+                console.warn(`Aviso ao limpar arquivo da track ${track.id} no PC:`, cleanErr);
+              }
             }
           } catch (downloadErr) {
             console.warn(`Erro ao baixar música ${track.title} no celular:`, downloadErr);
@@ -231,6 +241,40 @@ export const useLibraryHelper = () => {
     await refreshLibrary();
   }, [refreshLibrary]);
 
+  // Permite baixar/exportar todas as músicas salvas para uma pasta, pen drive ou disco
+  const exportLibraryToDisk = useCallback(async (): Promise<void> => {
+    const tracks = await getOfflineTracks();
+    if (tracks.length === 0) {
+      alert('Nenhuma música salva no aparelho para exportar.');
+      return;
+    }
+
+    let exportedCount = 0;
+    for (const track of tracks) {
+      try {
+        const blob = await getTrackBlob(track.id);
+        if (blob) {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          const safeName = `${track.artist} - ${track.title}`.replace(/[\\/:*?"<>|]/g, '_');
+          a.download = `${safeName}.mp3`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+          exportedCount++;
+          // Pequena pausa para o navegador lidar com múltiplos downloads sem bloquear
+          await new Promise((r) => setTimeout(r, 400));
+        }
+      } catch (err) {
+        console.warn(`Erro ao exportar música ${track.title}:`, err);
+      }
+    }
+
+    alert(`Download concluído! ${exportedCount} músicas salvas no seu computador.`);
+  }, []);
+
   return {
     offlineTracks,
     pcTracks,
@@ -245,6 +289,7 @@ export const useLibraryHelper = () => {
     discardPendingDownload,
     removeTrack,
     importLocalFiles,
+    exportLibraryToDisk,
     refreshLibrary,
     getTrackBlobUrl,
   };
