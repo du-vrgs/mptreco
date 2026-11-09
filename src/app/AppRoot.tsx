@@ -25,9 +25,50 @@ const MainShell: React.FC = () => {
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
+
     const urlParams = new URLSearchParams(window.location.search);
-    const mode = urlParams.get('mode');
-    if (mode === 'mobile') {
+    const modeParam = urlParams.get('mode');
+    const tokenParam = urlParams.get('token');
+
+    // Se o token veio na URL, salva no localStorage para persistência
+    if (tokenParam) {
+      localStorage.setItem('mptreco_admin_token', tokenParam);
+    }
+
+    // Se veio mode=mobile ou desktop explicitamente na URL, persiste a preferência
+    if (modeParam === 'mobile') {
+      localStorage.setItem('mptreco_mode', 'mobile');
+      setIsMobileMode(true);
+      return;
+    }
+    if (modeParam === 'desktop') {
+      localStorage.setItem('mptreco_mode', 'desktop');
+      setIsMobileMode(false);
+      return;
+    }
+
+    // Checa se está salvo no localStorage
+    const savedMode = localStorage.getItem('mptreco_mode');
+    if (savedMode === 'mobile') {
+      setIsMobileMode(true);
+      return;
+    }
+    if (savedMode === 'desktop') {
+      setIsMobileMode(false);
+      return;
+    }
+
+    // Checa se está rodando instalado como PWA / Standalone no celular
+    const isStandalone =
+      window.matchMedia('(display-mode: standalone)').matches ||
+      ('standalone' in window.navigator && Boolean((window.navigator as unknown as { standalone: boolean }).standalone));
+
+    // Checa se é um dispositivo móvel pela largura ou User Agent
+    const isMobileDevice =
+      window.innerWidth <= 768 ||
+      /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
+
+    if (isStandalone || isMobileDevice) {
       setIsMobileMode(true);
     }
   }, []);

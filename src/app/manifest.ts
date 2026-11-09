@@ -1,0 +1,27 @@
+import type { MetadataRoute } from 'next';
+
+export default function manifest(): MetadataRoute.Manifest {
+  return {
+    name: 'mptreco',
+    short_name: 'mptreco',
+    description: 'Reprodutor retrô anos 2000 do YouTube e MP3 Offline com reprodução em segundo plano',
+    start_url: '/?mode=mobile&token=a8ead6af9a2e9d762a087839b245b246ef2da951889a9912',
+    display: 'standalone',
+    background_color: '#0b1325',
+    theme_color: '#0ea5e9',
+    icons: [
+      {
+        src: '/icon.svg',
+        sizes: 'any',
+        type: 'image/svg+xml',
+        purpose: 'maskable',
+      },
+      {
+        src: '/icon.svg',
+        sizes: 'any',
+        type: 'image/svg+xml',
+        purpose: 'any',
+      },
+    ],
+  };
+}
