@@ -109,8 +109,8 @@ export const useLibraryHelper = () => {
       await syncWithPc();
       return true;
     } catch (err) {
-      console.error(`Erro ao baixar ${track.id}:`, err);
-      alert('Não foi possível baixar no PC.');
+      console.warn(`Aviso no download da faixa ${track.id}:`, err);
+      // Não exibe alert bloqueante se a sincronização puder recuperar o arquivo
       return false;
     } finally {
       setDownloadingIds((prev) => {
