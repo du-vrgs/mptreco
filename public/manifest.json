@@ -1,0 +1,17 @@
+{
+  "name": "mptreco",
+  "short_name": "mptreco",
+  "description": "Reprodutor retrô anos 2000 do YouTube e MP3 Offline com reprodução em segundo plano",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0b1325",
+  "theme_color": "#0ea5e9",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

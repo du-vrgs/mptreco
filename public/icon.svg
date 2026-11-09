@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <defs>
+    <linearGradient id="wmpGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="50%" stop-color="#0284c7"/>
+      <stop offset="100%" stop-color="#0c4a6e"/>
+    </linearGradient>
+    <radialGradient id="gloss" cx="30%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="512" height="512" rx="128" fill="#0b1325"/>
+  <circle cx="256" cy="256" r="180" fill="url(#wmpGrad)" stroke="#7dd3fc" stroke-width="8"/>
+  <circle cx="256" cy="256" r="180" fill="url(#gloss)"/>
+  <path d="M220 180 L340 256 L220 332 Z" fill="#ffffff"/>
+  <circle cx="256" cy="256" r="180" stroke="#ffffff" stroke-width="2" stroke-opacity="0.3"/>
+</svg>

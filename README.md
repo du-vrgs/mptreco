@@ -1,36 +1,82 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🎵 mptreco
 
-## Getting Started
+**mptreco** é um web app nostálgico e moderno inspirado nos reprodutores de mídia dos anos 2000 (Windows Media Player, Winamp, Frutiger Aero) combinado com a robustez e performance das tecnologias web atuais.
 
-First, run the development server:
+Permite buscar vídeos e músicas no YouTube, ouvir instantaneamente via stream direto sem precisar baixar, ou salvar localmente no dispositivo (IndexedDB) para escutar 100% offline — **com a tela desligada ou em segundo plano**!
+
+---
+
+## ✨ Funcionalidades Principais
+
+1. **Busca sem Quota de API**:
+   - Pesquisa rápida de vídeos, músicas e canais sem necessidade de API Key do Google Cloud.
+2. **Reprodução com Tela Desligada / Segundo Plano**:
+   - Integração completa com a **MediaSession API** (`navigator.mediaSession`), exibindo controles na tela de bloqueio, smartwatch e fones bluetooth.
+   - PWA instalável (`standalone`).
+3. **Modo Stream Direto (Play Imediato)**:
+   - Dê play instantaneamente em qualquer resultado sem precisar baixar o áudio no disco.
+4. **Armazenamento Offline no Dispositivo (PWA / IndexedDB)**:
+   - Baixe as músicas para a memória do navegador (`idb-keyval`).
+   - Escute no metrô, avião ou sem internet.
+   - Suporte a importar arquivos `.mp3` que já estejam no seu celular ou computador.
+5. **Visualizador de Espectro de Áudio Real (Web Audio API)**:
+   - Equalizador dinâmico estilo anos 2000 desenhado em Canvas reagindo às frequências sonoras da música.
+6. **Skins & Temas Nostálgicos**:
+   - **WMP 2000 Corona**: Botões orbes azuis translúcidos, detalhes cromados e gradientes clássicos.
+   - **Winamp Retro Bento**: Neon verde, displays escuros e fonte mono.
+   - **Frutiger Aero**: Vidro translúcido (glassmorphism) e reflexos aquosos.
+   - **Modern Minimal**: Tema escuro minimalista moderno.
+7. **Playlists Nomeadas**:
+   - Criação, edição e reprodução de playlists personalizadas.
+
+---
+
+## 🏗 Arquitetura do Frontend (Vertical Slice / Micro-frontends Style)
+
+Seguindo as convenções de arquitetura declaradas:
+- `src/features/player/`:
+  - `components/`: `MainPlayerBar.tsx`, `SpectrumVisualizer.tsx`.
+  - `hooks/`: `useAudioPlayerHelper.ts`.
+  - `context/`: `PlayerContext.tsx`.
+- `src/features/library/`:
+  - `components/`: `LibraryView.tsx`.
+  - `hooks/`: `useLibraryHelper.ts`.
+  - `services/`: `indexedDbStorageService.ts`.
+  - `context/`: `LibraryContext.tsx`.
+- `src/features/playlists/`:
+  - `components/`: `PlaylistsView.tsx`.
+  - `hooks/`: `usePlaylistHelper.ts`.
+  - `context/`: `PlaylistContext.tsx`.
+- `src/features/themes/`:
+  - `components/`: `ThemeSelector.tsx`.
+  - `hooks/`: `useThemeHelper.ts`.
+  - `context/`: `ThemeContext.tsx`.
+- `src/features/search/`:
+  - `components/`: `SearchInput.tsx`, `TrackCard.tsx`.
+  - `hooks/`: `useSearchHelper.ts`.
+- `src/shared/types/`:
+  - Tipagem estrita com `enum` (`PlaybackState`, `ThemeSkin`, `AudioSourceType`, `RepeatMode`).
+
+---
+
+## 🚀 Como Executar Localmente
 
 ```bash
+# Instalar dependências
+npm install
+
+# Rodar servidor de desenvolvimento
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Abra [http://localhost:3000](http://localhost:3000) no seu navegador.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## ☁️ Deploy na Vercel
 
-## Learn More
+O projeto foi preparado e estruturado para deploy direto na Vercel via CLI:
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+vercel --prod
+```
