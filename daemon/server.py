@@ -1,5 +1,6 @@
 import os
 import json
+import shutil
 import subprocess
 from pathlib import Path
 from fastapi import FastAPI, HTTPException, Query, Request, Body
@@ -81,6 +82,42 @@ def list_tracks(token: str = Query(None)):
             "updatedAt": info.get("updatedAt", 0)
         })
     return {"tracks": sorted(tracks, key=lambda x: x["updatedAt"], reverse=True), "playlists": load_playlists()}
+
+@app.post("/export-library")
+def export_library_to_directory(target_path: str = Query(...), token: str = Query(None)):
+    """Copia os arquivos .mp3 existentes para a pasta/pendrive escolhido, baixando sob demanda somente os que não estiverem no PC."""
+    verify_token(token)
+    dest_dir = Path(target_path).expanduser().resolve()
+    dest_dir.mkdir(parents=True, exist_ok=True)
+
+    catalog = load_catalog()
+    results = []
+
+    for video_id, info in catalog.items():
+        filename = info.get("filename", f"{video_id}.mp3")
+        source_file = DOWNLOADS_DIR / filename
+
+        # Se o arquivo não existir localmente no PC, baixa agora
+        if not source_file.exists():
+            url = f"https://www.youtube.com/watch?v={video_id}"
+            cmd = [
+                YTDLP_PATH,
+                "--ffmpeg-location", FFMPEG_PATH,
+                "-x", "--audio-format", "mp3",
+                "-o", str(DOWNLOADS_DIR / f"{video_id}.%(ext)s"),
+                url
+            ]
+            res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            if res.returncode == 0:
+                source_file = DOWNLOADS_DIR / f"{video_id}.mp3"
+
+        if source_file.exists():
+            clean_name = f"{info.get('artist', 'Artista')} - {info.get('title', video_id)}.mp3".replace("/", "_").replace("\\", "_")
+            dest_file = dest_dir / clean_name
+            shutil.copy2(source_file, dest_file)
+            results.append({"id": video_id, "title": info.get("title"), "dest": str(dest_file)})
+
+    return {"status": "success", "dest_dir": str(dest_dir), "copied_count": len(results)}
 
 @app.post("/cleanup-file/{id}")
 def cleanup_file_from_pc(id: str, token: str = Query(None)):

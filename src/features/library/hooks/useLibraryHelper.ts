@@ -241,39 +241,80 @@ export const useLibraryHelper = () => {
     await refreshLibrary();
   }, [refreshLibrary]);
 
-  // Permite baixar/exportar todas as músicas salvas para uma pasta, pen drive ou disco
+  // Permite salvar/copiar a biblioteca de músicas para uma pasta ou pen drive
   const exportLibraryToDisk = useCallback(async (): Promise<void> => {
-    const tracks = await getOfflineTracks();
-    if (tracks.length === 0) {
-      alert('Nenhuma música salva no aparelho para exportar.');
-      return;
-    }
-
-    let exportedCount = 0;
-    for (const track of tracks) {
+    // 1. Tenta usar a File System Access API nativa do navegador (Chrome / Edge / Opera)
+    // Permite que o usuário clique e selecione a pasta ou o Pen Drive diretamente no sistema de arquivos
+    if ('showDirectoryPicker' in window) {
       try {
-        const blob = await getTrackBlob(track.id);
-        if (blob) {
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          const safeName = `${track.artist} - ${track.title}`.replace(/[\\/:*?"<>|]/g, '_');
-          a.download = `${safeName}.mp3`;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          URL.revokeObjectURL(url);
-          exportedCount++;
-          // Pequena pausa para o navegador lidar com múltiplos downloads sem bloquear
-          await new Promise((r) => setTimeout(r, 400));
+        const dirHandle = await (window as unknown as { showDirectoryPicker: () => Promise<FileSystemDirectoryHandle> }).showDirectoryPicker();
+        const tracks = await getOfflineTracks();
+        if (tracks.length === 0 && pcTracks.length === 0) {
+          alert('Nenhuma música encontrada na biblioteca para exportar.');
+          return;
         }
-      } catch (err) {
-        console.warn(`Erro ao exportar música ${track.title}:`, err);
+
+        let copied = 0;
+        const allToExport = tracks.length > 0 ? tracks : pcTracks;
+
+        for (const track of allToExport) {
+          try {
+            let blob: Blob | null = await getTrackBlob(track.id);
+
+            // Se não estiver em cache local no navegador, busca do backend do PC
+            if (!blob) {
+              const token = localStorage.getItem('mptreco_admin_token') || '';
+              const streamRes = await fetch(`/api/stream?id=${track.id}&token=${encodeURIComponent(token)}`);
+              if (streamRes.ok) {
+                blob = await streamRes.blob();
+              }
+            }
+
+            if (blob) {
+              const safeName = `${track.artist} - ${track.title}`.replace(/[\\/:*?"<>|]/g, '_') + '.mp3';
+              const fileHandle = await dirHandle.getFileHandle(safeName, { create: true });
+              const writable = await fileHandle.createWritable();
+              await writable.write(blob);
+              await writable.close();
+              copied++;
+            }
+          } catch (e) {
+            console.warn(`Erro ao salvar arquivo ${track.title}:`, e);
+          }
+        }
+
+        alert(`Sucesso! ${copied} arquivos .mp3 foram copiados diretamente para o local selecionado.`);
+        return;
+      } catch (err: unknown) {
+        if ((err as Error)?.name === 'AbortError') {
+          return; // Usuário cancelou o seletor de pasta
+        }
+        console.warn('File System Access API falhou ou foi rejeitada, tentando via backend:', err);
       }
     }
 
-    alert(`Download concluído! ${exportedCount} músicas salvas no seu computador.`);
-  }, []);
+    // 2. Fallback: pergunta o caminho da pasta no PC (ex: /media/edu/PENDRIVE ou ~/Musicas) e copia pelo daemon
+    const targetPath = prompt(
+      'Digite o caminho completo da pasta ou Pen Drive onde deseja salvar as músicas:\n(Ex: /media/edu/MEU_PENDRIVE ou ~/Musicas)',
+      '~/Musicas/mptreco'
+    );
+
+    if (!targetPath || !targetPath.trim()) return;
+
+    try {
+      const token = localStorage.getItem('mptreco_admin_token') || '';
+      const res = await fetch(`/api/export-pc?targetPath=${encodeURIComponent(targetPath.trim())}&token=${encodeURIComponent(token)}`, {
+        method: 'POST',
+      });
+
+      if (!res.ok) throw new Error('Falha ao exportar no PC');
+      const data = await res.json();
+      alert(`Sucesso! ${data.copied_count} músicas foram copiadas para:\n${data.dest_dir}`);
+    } catch (e) {
+      console.error('Erro na exportação para o disco:', e);
+      alert('Não foi possível exportar para o diretório especificado.');
+    }
+  }, [pcTracks]);
 
   return {
     offlineTracks,
