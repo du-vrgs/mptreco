@@ -103,17 +103,6 @@ export const useAudioPlayerHelper = () => {
         const token = typeof window !== 'undefined' ? localStorage.getItem('mptreco_admin_token') : null;
         const tokenParam = token ? `&token=${encodeURIComponent(token)}` : '';
         audioSrc = `/api/stream?id=${track.id}${tokenParam}`;
-
-        // Auto-Cache em background no IndexedDB do aparelho sem travar o play imediato
-        fetch(audioSrc)
-          .then((res) => {
-            if (res.ok) return res.blob();
-            throw new Error('Falha no auto-cache');
-          })
-          .then((blob) => {
-            saveTrackOffline(track, blob).catch((e) => console.warn('Auto-cache erro:', e));
-          })
-          .catch(() => {});
       }
 
       audio.src = audioSrc;

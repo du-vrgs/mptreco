@@ -4,7 +4,7 @@ import shutil
 import subprocess
 from pathlib import Path
 from fastapi import FastAPI, HTTPException, Query, Request, Body
-from fastapi.responses import FileResponse, RedirectResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 
@@ -236,19 +236,32 @@ def get_mp3_file(id: str, token: str = Query(None)):
             file_path = f
             break
 
-    # Se ainda não existe no disco, obtém a URL de stream direto instantâneo do YouTube sem esperar baixar!
+    # Se ainda não existe no disco, faz stream instantâneo em tempo real via pipe (yt-dlp -> ffmpeg -> MP3)
     if not file_path or not file_path.exists():
         url = f"https://www.youtube.com/watch?v={id}"
-        # Obtém a URL de stream do áudio imediatamente (demora ~300ms em vez de minutos)
-        cmd_url = [YTDLP_PATH, "-g", "-f", "ba/b", url]
-        res_url = subprocess.run(cmd_url, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        if res_url.returncode == 0:
-            direct_stream_url = res_url.stdout.strip().split("\n")[-1]
-            if direct_stream_url.startswith("http"):
-                return RedirectResponse(direct_stream_url, status_code=307)
+        cmd = f"{YTDLP_PATH} -o - -f ba/b \"{url}\" | {FFMPEG_PATH} -i pipe:0 -f mp3 -b:a 128k pipe:1"
+        proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
 
-    if not file_path or not file_path.exists():
-        raise HTTPException(status_code=404, detail="Não foi possível iniciar o áudio desta música")
+        def iter_stream():
+            try:
+                while True:
+                    chunk = proc.stdout.read(64 * 1024)
+                    if not chunk:
+                        break
+                    yield chunk
+            finally:
+                proc.terminate()
+
+        return StreamingResponse(
+            iter_stream(),
+            media_type="audio/mpeg",
+            headers={
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Headers": "Range, Content-Type",
+                "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
+                "Cache-Control": "no-cache",
+            }
+        )
 
     return FileResponse(
         path=file_path,
