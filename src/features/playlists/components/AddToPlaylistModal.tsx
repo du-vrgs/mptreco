@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { ListMusic, Check, Plus, X } from 'lucide-react';
+import { ListMusic, Check, Plus, X, Save } from 'lucide-react';
 import { usePlaylists } from '../context/PlaylistContext';
 import { Track } from '@/shared/types';
 
@@ -20,15 +20,56 @@ export const AddToPlaylistModal: React.FC<AddToPlaylistModalProps> = ({
   const [newPlaylistName, setNewPlaylistName] = useState('');
   const [isCreating, setIsCreating] = useState(false);
 
+  // Armazena as seleções locais antes de clicar em "Salvar"
+  const [selectedPlaylistIds, setSelectedPlaylistIds] = useState<Set<string>>(() => {
+    const initial = new Set<string>();
+    for (const pl of playlists) {
+      if (pl.trackIds.includes(track.id)) {
+        initial.add(pl.id);
+      }
+    }
+    return initial;
+  });
+
+  const [hasChanges, setHasChanges] = useState<boolean>(false);
+
   if (!isOpen) return null;
+
+  const toggleSelection = (playlistId: string) => {
+    setSelectedPlaylistIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(playlistId)) {
+        next.delete(playlistId);
+      } else {
+        next.add(playlistId);
+      }
+      return next;
+    });
+    setHasChanges(true);
+  };
+
+  const handleSave = () => {
+    for (const pl of playlists) {
+      const shouldBeIn = selectedPlaylistIds.has(pl.id);
+      const isCurrentlyIn = pl.trackIds.includes(track.id);
+
+      if (shouldBeIn && !isCurrentlyIn) {
+        addTrackToPlaylist(pl.id, track.id);
+      } else if (!shouldBeIn && isCurrentlyIn) {
+        removeTrackFromPlaylist(pl.id, track.id);
+      }
+    }
+    onClose();
+  };
 
   const handleCreateAndAdd = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newPlaylistName.trim()) return;
     const pl = createPlaylist(newPlaylistName.trim());
-    addTrackToPlaylist(pl.id, track.id);
+    setSelectedPlaylistIds((prev) => new Set(prev).add(pl.id));
     setNewPlaylistName('');
     setIsCreating(false);
+    setHasChanges(true);
   };
 
   return (
@@ -61,21 +102,16 @@ export const AddToPlaylistModal: React.FC<AddToPlaylistModalProps> = ({
         {/* Lista de Playlists Existentes */}
         <div className="max-h-48 overflow-y-auto flex flex-col gap-1.5 pr-1">
           {playlists.map((pl) => {
-            const isAdded = pl.trackIds.includes(track.id);
+            const isSelected = selectedPlaylistIds.has(pl.id);
 
             return (
               <button
                 key={pl.id}
-                onClick={() => {
-                  if (isAdded) {
-                    removeTrackFromPlaylist(pl.id, track.id);
-                  } else {
-                    addTrackToPlaylist(pl.id, track.id);
-                  }
-                }}
+                type="button"
+                onClick={() => toggleSelection(pl.id)}
                 className={`flex items-center justify-between p-2.5 rounded-xl text-left text-xs transition-all border ${
-                  isAdded
-                    ? 'bg-sky-500/20 border-sky-400/40 text-sky-200'
+                  isSelected
+                    ? 'bg-sky-500/20 border-sky-400/40 text-sky-200 shadow-sm'
                     : 'bg-white/5 border-white/5 text-zinc-300 hover:bg-white/10'
                 }`}
               >
@@ -87,12 +123,12 @@ export const AddToPlaylistModal: React.FC<AddToPlaylistModalProps> = ({
                 </div>
                 <div
                   className={`w-5 h-5 rounded-full flex items-center justify-center border transition-all ${
-                    isAdded
+                    isSelected
                       ? 'bg-sky-500 border-sky-400 text-black'
                       : 'border-zinc-600'
                   }`}
                 >
-                  {isAdded && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                  {isSelected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
                 </div>
               </button>
             );
@@ -119,6 +155,7 @@ export const AddToPlaylistModal: React.FC<AddToPlaylistModalProps> = ({
           </form>
         ) : (
           <button
+            type="button"
             onClick={() => setIsCreating(true)}
             className="flex items-center justify-center gap-1.5 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-semibold text-sky-300 transition-colors border border-dashed border-sky-500/30"
           >
@@ -126,6 +163,25 @@ export const AddToPlaylistModal: React.FC<AddToPlaylistModalProps> = ({
             Nova Playlist
           </button>
         )}
+
+        {/* Botão de Salvar Alterações */}
+        <div className="pt-2 border-t border-white/10 flex items-center justify-end gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-3.5 py-2 rounded-xl text-xs text-zinc-400 hover:text-white transition-colors"
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            onClick={handleSave}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 text-white font-bold text-xs shadow-lg hover:opacity-90 active:scale-95 transition-all"
+          >
+            <Save className="w-3.5 h-3.5" />
+            Salvar
+          </button>
+        </div>
       </div>
     </div>
   );

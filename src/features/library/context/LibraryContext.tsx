@@ -7,12 +7,15 @@ import { Track } from '@/shared/types';
 interface LibraryContextData {
   offlineTracks: Track[];
   pcTracks: Track[];
+  pendingTracks: Track[];
   isLoading: boolean;
   isSyncing: boolean;
   downloadingIds: Set<string>;
   downloadedSet: Set<string>;
   syncWithPc: () => Promise<void>;
   downloadToPcAndSave: (track: Track) => Promise<boolean>;
+  retryPendingDownload: (track: Track) => Promise<void>;
+  discardPendingDownload: (trackId: string) => void;
   removeTrack: (trackId: string) => Promise<void>;
   importLocalFiles: (files: FileList) => Promise<void>;
   refreshLibrary: () => Promise<void>;

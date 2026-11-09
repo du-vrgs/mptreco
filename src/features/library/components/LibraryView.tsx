@@ -1,7 +1,20 @@
 'use client';
 
 import React, { useRef, useState } from 'react';
-import { Upload, HardDrive, Music, Trash2, Play, Download, Laptop, RefreshCw, ListPlus } from 'lucide-react';
+import {
+  Upload,
+  HardDrive,
+  Music,
+  Trash2,
+  Play,
+  Download,
+  Laptop,
+  RefreshCw,
+  ListPlus,
+  Clock,
+  RotateCcw,
+  X,
+} from 'lucide-react';
 import { useLibrary } from '../context/LibraryContext';
 import { usePlayer } from '@/features/player/context/PlayerContext';
 import { AddToPlaylistModal } from '@/features/playlists/components/AddToPlaylistModal';
@@ -11,12 +24,15 @@ export const LibraryView: React.FC = () => {
   const {
     offlineTracks,
     pcTracks,
+    pendingTracks,
     isLoading,
     isSyncing,
     downloadingIds,
     downloadedSet,
     removeTrack,
     downloadToPcAndSave,
+    retryPendingDownload,
+    discardPendingDownload,
     syncWithPc,
     importLocalFiles,
   } = useLibrary();
@@ -72,6 +88,63 @@ export const LibraryView: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* Seção 0: Downloads Pendentes ou Interrompidos */}
+      {pendingTracks.length > 0 && (
+        <div className="flex flex-col gap-2 p-4 rounded-2xl bg-amber-950/20 border border-amber-500/30">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-bold text-amber-300 flex items-center gap-2">
+              <Clock className="w-4 h-4 text-amber-400" />
+              Downloads Pendentes ({pendingTracks.length})
+            </h3>
+            <span className="text-[11px] text-amber-400/80 font-mono">
+              Interrompidos por recarga de página
+            </span>
+          </div>
+
+          <div className="flex flex-col gap-2 mt-1">
+            {pendingTracks.map((pt) => {
+              const isDownloading = downloadingIds.has(pt.id);
+
+              return (
+                <div
+                  key={pt.id}
+                  className="flex items-center justify-between p-2.5 rounded-xl bg-black/50 border border-amber-500/20"
+                >
+                  <div className="min-w-0 pr-2">
+                    <h4 className="text-xs font-semibold text-zinc-200 truncate">
+                      {pt.title}
+                    </h4>
+                    <span className="text-[10px] text-zinc-400 truncate block">
+                      {pt.artist} • Pendente
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <button
+                      onClick={() => retryPendingDownload(pt)}
+                      disabled={isDownloading}
+                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs shadow transition-all active:scale-95"
+                      title="Reiniciar Download"
+                    >
+                      <RotateCcw className={`w-3.5 h-3.5 ${isDownloading ? 'animate-spin' : ''}`} />
+                      <span>{isDownloading ? 'Baixando...' : 'Reiniciar'}</span>
+                    </button>
+
+                    <button
+                      onClick={() => discardPendingDownload(pt.id)}
+                      className="p-1.5 text-zinc-400 hover:text-red-400 hover:bg-white/10 rounded-lg transition-colors"
+                      title="Descartar Download"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Seção 1: Músicas Disponíveis no PC */}
       {pcTracks.length > 0 && (

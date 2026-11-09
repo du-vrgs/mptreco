@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { AudioSourceType, Track } from '@/shared/types';
 import {
   getOfflineTracks,
@@ -8,20 +8,68 @@ import {
   getTrackBlobUrl,
 } from '../services/indexedDbStorageService';
 
+const PENDING_DOWNLOADS_KEY = 'mptreco_pending_downloads';
+
 export const useLibraryHelper = () => {
   const [offlineTracks, setOfflineTracks] = useState<Track[]>([]);
   const [downloadingIds, setDownloadingIds] = useState<Set<string>>(new Set());
   const [downloadedSet, setDownloadedSet] = useState<Set<string>>(new Set());
+  const [pendingTracks, setPendingTracks] = useState<Track[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [pcTracks, setPcTracks] = useState<Track[]>([]);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
+
+  const pendingRef = useRef<Track[]>([]);
+
+  // Carrega downloads pendentes salvos em localStorage ao inicializar
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const stored = localStorage.getItem(PENDING_DOWNLOADS_KEY);
+      if (stored) {
+        const parsed: Track[] = JSON.parse(stored);
+        setPendingTracks(parsed);
+        pendingRef.current = parsed;
+      }
+    } catch (e) {
+      console.warn('Erro ao ler downloads pendentes:', e);
+    }
+  }, []);
+
+  const savePendingToStorage = (tracks: Track[]) => {
+    setPendingTracks(tracks);
+    pendingRef.current = tracks;
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(PENDING_DOWNLOADS_KEY, JSON.stringify(tracks));
+    }
+  };
+
+  const addPendingTrack = useCallback((track: Track) => {
+    const exists = pendingRef.current.some((t) => t.id === track.id);
+    if (!exists) {
+      const updated = [...pendingRef.current, track];
+      savePendingToStorage(updated);
+    }
+  }, []);
+
+  const removePendingTrack = useCallback((trackId: string) => {
+    const updated = pendingRef.current.filter((t) => t.id !== trackId);
+    savePendingToStorage(updated);
+  }, []);
 
   const refreshLibrary = useCallback(async () => {
     try {
       setIsLoading(true);
       const tracks = await getOfflineTracks();
       setOfflineTracks(tracks);
-      setDownloadedSet(new Set(tracks.map((t) => t.id)));
+      const downloadedIds = new Set(tracks.map((t) => t.id));
+      setDownloadedSet(downloadedIds);
+
+      // Limpa automaticamente pendentes que já foram baixados
+      const stillPending = pendingRef.current.filter((t) => !downloadedIds.has(t.id));
+      if (stillPending.length !== pendingRef.current.length) {
+        savePendingToStorage(stillPending);
+      }
     } catch (err) {
       console.error('Erro ao carregar biblioteca offline:', err);
     } finally {
@@ -87,7 +135,10 @@ export const useLibraryHelper = () => {
   const downloadToPcAndSave = useCallback(async (track: Track): Promise<boolean> => {
     if (downloadingIds.has(track.id)) return false;
 
+    // Registra como download pendente persistente para o caso de reload de página
+    addPendingTrack(track);
     setDownloadingIds((prev) => new Set(prev).add(track.id));
+
     try {
       const token = typeof window !== 'undefined' ? localStorage.getItem('mptreco_admin_token') : null;
       const downloadParams = new URLSearchParams({
@@ -106,11 +157,11 @@ export const useLibraryHelper = () => {
 
       if (!res.ok) throw new Error('Falha ao baixar no PC');
 
+      removePendingTrack(track.id);
       await syncWithPc();
       return true;
     } catch (err) {
       console.warn(`Aviso no download da faixa ${track.id}:`, err);
-      // Não exibe alert bloqueante se a sincronização puder recuperar o arquivo
       return false;
     } finally {
       setDownloadingIds((prev) => {
@@ -119,7 +170,17 @@ export const useLibraryHelper = () => {
         return next;
       });
     }
-  }, [downloadingIds, syncWithPc]);
+  }, [downloadingIds, addPendingTrack, removePendingTrack, syncWithPc]);
+
+  // Função para reiniciar um download pendente
+  const retryPendingDownload = useCallback(async (track: Track) => {
+    await downloadToPcAndSave(track);
+  }, [downloadToPcAndSave]);
+
+  // Função para descartar um download pendente
+  const discardPendingDownload = useCallback((trackId: string) => {
+    removePendingTrack(trackId);
+  }, [removePendingTrack]);
 
   const removeTrack = useCallback(async (trackId: string): Promise<void> => {
     await deleteTrackOffline(trackId);
@@ -157,16 +218,18 @@ export const useLibraryHelper = () => {
   return {
     offlineTracks,
     pcTracks,
+    pendingTracks,
     isLoading,
     isSyncing,
     downloadingIds,
     downloadedSet,
     syncWithPc,
     downloadToPcAndSave,
+    retryPendingDownload,
+    discardPendingDownload,
     removeTrack,
     importLocalFiles,
     refreshLibrary,
     getTrackBlobUrl,
-    checkDownloaded: isTrackDownloaded,
   };
 };

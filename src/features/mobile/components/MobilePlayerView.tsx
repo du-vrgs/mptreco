@@ -17,6 +17,8 @@ import {
   X,
   Plus,
   Trash2,
+  Clock,
+  RotateCcw,
 } from 'lucide-react';
 import { useLibrary } from '@/features/library/context/LibraryContext';
 import { usePlayer } from '@/features/player/context/PlayerContext';
@@ -27,7 +29,17 @@ import { AddToPlaylistModal } from '@/features/playlists/components/AddToPlaylis
 import { ThemeSkin, Track } from '@/shared/types';
 
 export const MobilePlayerView: React.FC = () => {
-  const { pcTracks, offlineTracks, isSyncing, syncWithPc, downloadedSet } = useLibrary();
+  const {
+    pcTracks,
+    offlineTracks,
+    pendingTracks,
+    isSyncing,
+    syncWithPc,
+    downloadedSet,
+    downloadingIds,
+    retryPendingDownload,
+    discardPendingDownload,
+  } = useLibrary();
   const { playTrack, currentTrack } = usePlayer();
   const { currentSkin, changeSkin } = useTheme();
   const {
@@ -178,7 +190,47 @@ export const MobilePlayerView: React.FC = () => {
       >
         {activeTab === 'tracks' ? (
           /* TAB 1: LISTAGEM DE MÚSICAS */
-          displayTracks.length === 0 ? (
+          <>
+            {/* Bloco de Músicas Pendentes no Mobile */}
+            {pendingTracks.length > 0 && (
+              <div className="flex flex-col gap-1.5 p-2.5 rounded-xl bg-amber-950/20 border border-amber-500/30">
+                <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1">
+                  <Clock className="w-3 h-3" /> Downloads Pendentes ({pendingTracks.length})
+                </span>
+                {pendingTracks.map((pt) => {
+                  const isRetrying = downloadingIds.has(pt.id);
+                  return (
+                    <div
+                      key={pt.id}
+                      className="flex items-center justify-between p-2 rounded-lg bg-black/50 border border-amber-500/20"
+                    >
+                      <div className="min-w-0 pr-2">
+                        <p className="text-xs font-semibold text-zinc-200 truncate">{pt.title}</p>
+                        <p className="text-[10px] text-zinc-400 truncate">{pt.artist}</p>
+                      </div>
+                      <div className="flex items-center gap-1.5 flex-shrink-0">
+                        <button
+                          onClick={() => retryPendingDownload(pt)}
+                          disabled={isRetrying}
+                          className="px-2 py-1 rounded-md bg-amber-500 text-black font-bold text-[10px] flex items-center gap-1 active:scale-95"
+                        >
+                          <RotateCcw className={`w-3 h-3 ${isRetrying ? 'animate-spin' : ''}`} />
+                          <span>{isRetrying ? 'Baixando...' : 'Reiniciar'}</span>
+                        </button>
+                        <button
+                          onClick={() => discardPendingDownload(pt.id)}
+                          className="p-1 text-zinc-400 hover:text-red-400"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {displayTracks.length === 0 ? (
             <div className="my-auto py-12 text-center border border-dashed border-zinc-800 rounded-2xl p-6 bg-zinc-900/20">
               <Music className="w-10 h-10 text-zinc-600 mx-auto mb-2" />
               <h3 className="text-sm font-semibold text-zinc-300">
@@ -277,7 +329,8 @@ export const MobilePlayerView: React.FC = () => {
                 </div>
               );
             })
-          )
+          )}
+          </>
         ) : selectedPlaylist ? (
           /* TAB 2 - DETALHES DA PLAYLIST SELECIONADA NO MOBILE */
           <div className="flex flex-col gap-3">
