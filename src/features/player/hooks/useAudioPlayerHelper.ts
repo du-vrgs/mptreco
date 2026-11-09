@@ -106,7 +106,9 @@ export const useAudioPlayerHelper = () => {
       }
 
       audio.src = audioSrc;
-      audio.crossOrigin = 'anonymous';
+      // crossOrigin só deve ser setado para fontes do mesmo domínio ou com headers CORS estritos;
+      // Para reprodução local pura de áudio, desativar crossOrigin evita bloqueios de áudio no Chrome/Firefox
+      audio.removeAttribute('crossOrigin');
       await audio.play();
       setPlaybackState(PlaybackState.PLAYING);
 
@@ -183,9 +185,13 @@ export const useAudioPlayerHelper = () => {
   }, [queue, currentIndex, playTrack]);
 
   const seek = useCallback((timeSeconds: number) => {
-    if (audioRef.current) {
-      audioRef.current.currentTime = timeSeconds;
-      setCurrentTime(timeSeconds);
+    if (audioRef.current && isFinite(timeSeconds) && !isNaN(timeSeconds)) {
+      try {
+        audioRef.current.currentTime = Math.max(0, timeSeconds);
+        setCurrentTime(timeSeconds);
+      } catch (err) {
+        console.warn('Erro ao ajustar tempo de áudio:', err);
+      }
     }
   }, []);
 
