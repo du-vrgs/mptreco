@@ -3,3 +3,7 @@ INFO:     Waiting for application startup.
 INFO:     Application startup complete.
 INFO:     Uvicorn running on http://0.0.0.0:7777 (Press CTRL+C to quit)
 INFO:     45.174.237.140:0 - "HEAD /file/gAjR4_CbPpQ.mp3?token=a8ead6af9a2e9d762a087839b245b246ef2da951889a9912 HTTP/1.1" 200 OK
+INFO:     45.174.237.140:0 - "HEAD /file/gAjR4_CbPpQ.mp3?token=a8ead6af9a2e9d762a087839b245b246ef2da951889a9912 HTTP/1.1" 200 OK
+INFO:     45.174.237.140:0 - "GET /file/yydNF8tuVmU.mp3?token=a8ead6af9a2e9d762a087839b245b246ef2da951889a9912 HTTP/1.1" 206 Partial Content
+INFO:     45.174.237.140:0 - "GET /file/yydNF8tuVmU.mp3?token=a8ead6af9a2e9d762a087839b245b246ef2da951889a9912 HTTP/1.1" 206 Partial Content
+INFO:     45.174.237.140:0 - "GET /file/gAjR4_CbPpQ.mp3?token=a8ead6af9a2e9d762a087839b245b246ef2da951889a9912 HTTP/1.1" 206 Partial Content

@@ -6,9 +6,12 @@ import { Track } from '@/shared/types';
 
 interface LibraryContextData {
   offlineTracks: Track[];
+  pcTracks: { id: string; filename: string; sizeBytes: number }[];
   isLoading: boolean;
+  isSyncing: boolean;
   downloadingIds: Set<string>;
   downloadedSet: Set<string>;
+  syncWithPc: () => Promise<void>;
   downloadTrack: (track: Track) => Promise<boolean>;
   removeTrack: (trackId: string) => Promise<void>;
   importLocalFiles: (files: FileList) => Promise<void>;
