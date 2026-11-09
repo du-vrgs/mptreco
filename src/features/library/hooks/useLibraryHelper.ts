@@ -66,6 +66,11 @@ export const useLibraryHelper = () => {
 
         // Atualiza o estado da biblioteca offline após sincronizar e baixar os novos arquivos
         await refreshLibrary();
+
+        // Dispara evento para sincronizar playlists se houver
+        if (data.playlists && Array.isArray(data.playlists) && typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('mptreco:sync-playlists', { detail: data.playlists }));
+        }
       }
     } catch (e) {
       console.warn('PC offline para sincronização:', e);

@@ -13,6 +13,7 @@ interface PlaylistContextData {
   removeTrackFromPlaylist: (playlistId: string, trackId: string) => void;
   deletePlaylist: (playlistId: string) => void;
   renamePlaylist: (playlistId: string, newName: string) => void;
+  mergeRemotePlaylists: (remotePlaylists: Playlist[]) => void;
 }
 
 const PlaylistContext = createContext<PlaylistContextData | null>(null);

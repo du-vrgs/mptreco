@@ -11,6 +11,7 @@ ADMIN_TOKEN = os.environ.get("MPTRECO_ADMIN_TOKEN", "a8ead6af9a2e9d762a087839b24
 DOWNLOADS_DIR = Path("/home/edu/Projects/mptreco/daemon/downloads")
 DOWNLOADS_DIR.mkdir(parents=True, exist_ok=True)
 CATALOG_FILE = DOWNLOADS_DIR / "library.json"
+PLAYLISTS_FILE = DOWNLOADS_DIR / "playlists.json"
 FFMPEG_PATH = "/home/edu/.local/bin/ffmpeg"
 YTDLP_PATH = "/home/edu/Projects/mptreco/daemon/.venv/bin/yt-dlp"
 
@@ -42,6 +43,19 @@ def save_catalog(catalog: dict):
     with open(CATALOG_FILE, "w", encoding="utf-8") as f:
         json.dump(catalog, f, ensure_ascii=False, indent=2)
 
+def load_playlists() -> list:
+    if PLAYLISTS_FILE.exists():
+        try:
+            with open(PLAYLISTS_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            return []
+    return []
+
+def save_playlists_file(playlists: list):
+    with open(PLAYLISTS_FILE, "w", encoding="utf-8") as f:
+        json.dump(playlists, f, ensure_ascii=False, indent=2)
+
 @app.get("/health")
 def health():
     return {"status": "ok", "app": "mptreco-local-engine"}
@@ -65,7 +79,13 @@ def list_tracks(token: str = Query(None)):
                 "sizeBytes": mp3_path.stat().st_size,
                 "updatedAt": int(mp3_path.stat().st_mtime * 1000)
             })
-    return {"tracks": sorted(tracks, key=lambda x: x["updatedAt"], reverse=True)}
+    return {"tracks": sorted(tracks, key=lambda x: x["updatedAt"], reverse=True), "playlists": load_playlists()}
+
+@app.post("/playlists")
+def update_playlists(request_body: list, token: str = Query(None)):
+    verify_token(token)
+    save_playlists_file(request_body)
+    return {"status": "success", "playlists": request_body}
 
 @app.post("/download")
 def download_track(
