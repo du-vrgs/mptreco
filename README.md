@@ -34,61 +34,46 @@
 
 ---
 
-## 🚀 Como Rodar Amanhã (Guia Rápido)
+## 🚀 Como Rodar Quando Quiser (Sob Demanda via Terminal)
 
-### 1. O Túnel / Daemon Local (Já roda sozinho via systemd!)
+Nada inicia sozinho no boot. Você tem controle total pelo terminal quando quiser disponibilizar músicas ou baixar novas:
 
-O daemon local com `cloudflared` foi configurado como um serviço do sistema do usuário (`systemd`). Ele inicia automaticamente ao ligar o PC.
+### 1. Iniciar o Túnel e o Motor de Stream Local
 
-- **Verificar se o túnel e daemon estão rodando:**
-  ```bash
-  systemctl --user status mptreco.service
-  ```
-- **Iniciar o serviço (se estiver parado):**
-  ```bash
-  systemctl --user start mptreco.service
-  ```
-- **Reiniciar o serviço (gera novo túnel e atualiza o Gist):**
-  ```bash
-  systemctl --user restart mptreco.service
-  ```
-- **Ver os logs do túnel / downloads:**
-  ```bash
-  journalctl --user -u mptreco.service -f
-  # Ou diretamente nos logs do daemon:
-  tail -f /home/edu/Projects/mptreco/daemon/server.log
-  tail -f /home/edu/Projects/mptreco/daemon/tunnel.log
-  ```
+No terminal do repositório:
+```bash
+cd /home/edu/Projects/mptreco
+npm run tunnel
+```
+*(ou `bash daemon/start.sh`)*
+
+Ele iniciará o servidor local na porta `7777`, abrirá o túnel Cloudflare e atualizará seu Gist no GitHub automaticamente.
+
+Para encerrar o túnel quando terminar, basta dar `Ctrl + C` (ou `pkill -f "python3.*server.py" && pkill -f "cloudflared"`).
 
 ---
 
 ### 2. Rodar a Central Desktop para Baixar Novas Músicas
 
-Quando você quiser abrir o app no seu computador para pesquisar e baixar novos sons:
-
+Em outro terminal:
 ```bash
 cd /home/edu/Projects/mptreco
 npm run dev
 ```
 
-1. Acesse no navegador do seu PC:
-   👉 **http://localhost:3000**
-2. Se quiser acessar com o painel de status local ativo, use o token de admin:
-   👉 **http://localhost:3000?token=a8ead6af9a2e9d762a087839b245b246ef2da951889a9912**
-3. Busque qualquer música no campo de busca e clique em **Baixar**.
-4. O download será processado pelo seu daemon local e salvo na pasta `daemon/downloads/`.
+1. Acesse: **http://localhost:3000**
+2. Busque suas faixas e clique em **Baixar**. Os MP3s ficam salvos em `daemon/downloads/`.
 
 ---
 
-### 3. Acessar pelo Celular
+### 3. No Celular (Tocar e Sincronizar)
 
-Basta abrir o aplicativo instalado no seu celular (PWA) ou acessar:
-👉 **https://mptreco.vercel.app**
-
-O app móvel já abre automaticamente no modo **Mobile Pure Player** com seu token configurado:
-- Lista todas as músicas baixadas no PC via túnel com o status `No PC`.
-- Exibe o botão de play com controles e tela de bloqueio (MediaSession API).
-- Salva no armazenamento offline do celular ao tocar ou sincronizar.
+1. Abra o app PWA no celular ou acesse **https://mptreco.vercel.app**.
+2. Clique no botão **`Sync PC`** no topo da tela para atualizar a lista com quaisquer novas músicas disponíveis no túnel.
+3. Ao tocar pela primeira vez na faixa:
+   - Ela toca imediatamente transmitida pelo túnel do seu PC.
+   - É baixada e salva no cache do celular (`IndexedDB`).
+   - Nas próximas vezes, o badge muda para `Offline` e você escuta direto da memória do celular, mesmo com o túnel ou o PC desligados e a tela apagada!
 
 ---
 

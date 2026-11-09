@@ -60,14 +60,19 @@ export const MobilePlayerView: React.FC = () => {
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-2">
           <button
             onClick={syncWithPc}
             disabled={isSyncing}
-            className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-zinc-300 transition-colors"
-            title="Sincronizar com o PC"
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              isSyncing
+                ? 'bg-sky-500/20 text-sky-300 border border-sky-400/30'
+                : 'bg-gradient-to-r from-sky-500 to-blue-600 text-white shadow hover:opacity-90 active:scale-95'
+            }`}
+            title="Sincronizar catálogo com o PC"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin text-sky-400' : ''}`} />
+            <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
+            <span>{isSyncing ? 'Sincronizando...' : 'Sync PC'}</span>
           </button>
 
           <button
